@@ -3,6 +3,7 @@
 #include "game/BallState.hpp"
 #include "game/Collider.hpp"
 #include "game/Math.hpp"
+#include "game/DevSettings.hpp"
 #include "game/PaddleState.hpp"
 
 #include <algorithm>
@@ -19,7 +20,7 @@ bool handle_ball_paddle_collision(BallState &ball, PaddleState &paddle, bool par
 
     /// Collision position relative to paddle center [-1; +1].
     const float rel_pos = std::clamp(
-        (ball.pos.y - paddle.pos.y) / PADDLE_HALF_H,
+        (ball.pos.y - paddle.pos.y) / g_dev.paddle_half_h,
         -1.0f,
         1.0f
     );
@@ -34,9 +35,9 @@ bool handle_ball_paddle_collision(BallState &ball, PaddleState &paddle, bool par
 
     // Prevent the ball from sticking to the paddle
     if (ball.hor_dir < 0.0f)
-        ball.pos.x = pc.right() + BALL_RADIUS + 0.0001f;
+        ball.pos.x = pc.right() + g_dev.ball_radius + 0.0001f;
     else
-        ball.pos.x = pc.left()  - BALL_RADIUS - 0.0001f;
+        ball.pos.x = pc.left()  - g_dev.ball_radius - 0.0001f;
 
     ball.bounce_from_paddle(new_ver_dir, parry_active && !paddle.parry_on_cooldown());
 

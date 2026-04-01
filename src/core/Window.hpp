@@ -22,6 +22,7 @@ public:
     void set_should_close(bool v) { m_should_close = v; }
 
     SDL_Window* get_sdl_window() { return m_window; }
+    void* get_gl_context() { return m_context; }
 
 private:
     SDL_Window* m_window = nullptr;

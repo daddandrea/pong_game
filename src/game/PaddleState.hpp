@@ -19,7 +19,7 @@ struct PaddleState {
 
     bool parry_on_cooldown() const { return parry_timer > 0.0f; };
 
-    void trigger_parry() { parry_timer = PADDLE_PARRY_CD; };
+    void trigger_parry();
 
     RectCollider collider() const;
 };

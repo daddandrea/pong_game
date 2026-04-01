@@ -10,11 +10,11 @@ namespace Log {
 namespace detail {
 
     inline void print_info(std::string_view msg, const std::source_location& loc) {
-        std::cout << std::format("[INFO] {}:{} | {}\n", loc.file_name(), loc.line(), msg);
+        std::cout << std::format("\033[34m[INFO] {}:{} | {}\033[0m\n", loc.file_name(), loc.line(), msg);
     }
 
     inline void print_error(std::string_view msg, const std::source_location& loc) {
-        std::cerr << std::format("[ERROR] {}:{} | {}\n", loc.file_name(), loc.line(), msg);
+        std::cerr << std::format("\033[31m[ERROR] {}:{} | {}\033[0m\n", loc.file_name(), loc.line(), msg);
     }
 
 } // namespace detail

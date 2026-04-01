@@ -1,6 +1,7 @@
 #include "GameScene.hpp"
 #include "core/AudioManager.hpp"
 #include "core/InputState.hpp"
+#include "game/DevSettings.hpp"
 #include "game/GameConfig.hpp"
 #include "game/Math.hpp"
 #include "game/Physics.hpp"
@@ -21,6 +22,7 @@ GameScene::GameScene()
 
 void GameScene::on_enter() {
     m_config = game::g_config;
+    game::g_dev.win_score = game::g_dev.win_score;
 
     m_score_left = 0;
     m_score_right = 0;
@@ -43,6 +45,7 @@ std::string GameScene::update(const core::InputState& input, float dt) {
     using namespace core;
 
     if (input.is_pressed(Key::Escape)) return Transition::Push(Transition::Pause);
+    if (input.is_pressed(Key::F1)) game::g_dev.show_dev = !game::g_dev.show_dev;
 
     switch (m_phase) {
         case GamePhase::Countdown:
@@ -112,8 +115,8 @@ std::string GameScene::update(const core::InputState& input, float dt) {
 
                 m_ball_goes_right = (scored > 0);
 
-                if (game::is_game_over(m_score_left, m_score_right, m_config.win_score)) {
-                    m_winner = (m_score_left >= m_config.win_score)
+                if (game::is_game_over(m_score_left, m_score_right, game::g_dev.win_score)) {
+                    m_winner = (m_score_left >= game::g_dev.win_score)
                                  ? Winner::Left
                                  : Winner::Right;
                     m_phase = GamePhase::GameOver;
@@ -161,18 +164,18 @@ void GameScene::render(renderer::Renderer2D& r) const {
     }
 
     // ── Paddles ─────────────────────────────────────────────────────────
-    r.draw_quad(m_left_paddle.pos, 
-                {game::PADDLE_HALF_W * 2.0f, game::PADDLE_HALF_H * 2.0f},
+    r.draw_quad(m_left_paddle.pos,
+                {game::PADDLE_HALF_W * 2.0f, game::g_dev.paddle_half_h * 2.0f},
                 Colors::PlayerLeft);
 
-    r.draw_quad(m_right_paddle.pos, 
-                {game::PADDLE_HALF_W * 2.0f, game::PADDLE_HALF_H * 2.0f},
+    r.draw_quad(m_right_paddle.pos,
+                {game::PADDLE_HALF_W * 2.0f, game::g_dev.paddle_half_h * 2.0f},
                 Colors::PlayerRight);
 
 
     // ── Ball ─────────────────────────────────────────────────────────
     if (m_ball.in_play) {
-        r.draw_circle(m_ball.pos, game::BALL_RADIUS, Colors::BallColor);
+        r.draw_circle(m_ball.pos, game::g_dev.ball_radius, Colors::BallColor);
     }
 
     // ── Scores ─────────────────────────────────────────────────────────
@@ -214,6 +217,7 @@ void GameScene::render(renderer::Renderer2D& r) const {
 
     if (!m_right_paddle.parry_on_cooldown())
         r.draw_circle({m_right_paddle.pos.x - 0.6f, m_right_paddle.pos.y}, 0.12f, {0.4f, 1.0f, 0.4f, 0.8f});
+
 }
 
 } // namespace scenes

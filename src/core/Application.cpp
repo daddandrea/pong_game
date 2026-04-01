@@ -1,6 +1,7 @@
 #include "Application.hpp"
 #include "core/Logger.hpp"
 #include "scenes/CreditsScene.hpp"
+#include "scenes/DevMenu.hpp"
 #include "scenes/GameScene.hpp"
 #include "scenes/IScene.hpp"
 #include "scenes/MainMenuScene.hpp"
@@ -8,6 +9,9 @@
 #include "renderer/Renderer2D.hpp"
 
 #include <glad/glad.h>
+#include <imgui.h>
+#include <imgui_impl_sdl3.h>
+#include <imgui_impl_opengl3.h>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_filesystem.h>
@@ -64,6 +68,8 @@ static int sdl_key_to_index(SDL_Keycode key) {
         return static_cast<int>(Key::Enter);
     case SDLK_ESCAPE:
         return static_cast<int>(Key::Escape);
+    case SDLK_F1:
+        return static_cast<int>(Key::F1);
     default:
         return -1;
     }
@@ -102,6 +108,12 @@ Application::Application() : m_window("Pong", WIN_W, WIN_H) {
                                     [] { return std::make_unique<scenes::CreditsScene>(); });
 
     m_scene_manager->push(Transition::MainMenu);
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGui::StyleColorsDark();
+    ImGui_ImplSDL3_InitForOpenGL(m_window.get_sdl_window(), m_window.get_gl_context());
+    ImGui_ImplOpenGL3_Init("#version 330 core");
 }
 
 bool Application::init() {
@@ -112,7 +124,11 @@ bool Application::init() {
     return true;
 }
 
-Application::~Application() = default;
+Application::~Application() {
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplSDL3_Shutdown();
+    ImGui::DestroyContext();
+}
 
 void Application::run() {
     using clock = std::chrono::steady_clock;
@@ -131,6 +147,10 @@ void Application::run() {
         if (m_window.should_close())
             break;
 
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplSDL3_NewFrame();
+        ImGui::NewFrame();
+
         const std::string next = m_scene_manager->update(m_input, dt);
         if (next == Transition::Quit) {
             m_window.set_should_close(true);
@@ -141,6 +161,10 @@ void Application::run() {
         glClear(GL_COLOR_BUFFER_BIT);
 
         m_scene_manager->render(*m_renderer);
+        scenes::render_dev_menu();
+
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         m_window.swap_buffers();
     }
@@ -159,6 +183,7 @@ void Application::process_events() {
 
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
+        ImGui_ImplSDL3_ProcessEvent(&event);
         switch (event.type) {
             case SDL_EVENT_QUIT:
                 m_window.set_should_close(true);

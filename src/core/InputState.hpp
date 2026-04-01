@@ -12,6 +12,7 @@ enum class Key {
     Space,
     Enter,
     Escape,
+    F1,
     COUNT
 };
 
