@@ -17,6 +17,7 @@ Pong
 .idea/
 *.swp
 *.swo
+.clangd
 
 # CMake
 CMakeCache.txt
