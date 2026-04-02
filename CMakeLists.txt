@@ -25,6 +25,10 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(SDL3)
 
+# SDL3_ttf uses find_package(SDL3) internally; point it at the FetchContent build
+FetchContent_GetProperties(SDL3)
+set(SDL3_DIR "${sdl3_BINARY_DIR}" CACHE PATH "" FORCE)
+
 FetchContent_Declare(
     SDL3_ttf
     GIT_REPOSITORY https://github.com/libsdl-org/SDL_ttf.git
