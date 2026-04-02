@@ -18,16 +18,11 @@ jobs:
             cmake build-essential libgl1-mesa-dev \
             libwayland-dev libx11-dev libxkbcommon-dev \
             libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev \
-            libasound2-dev libpulse-dev libdbus-1-dev
+            libasound2-dev libpulse-dev libdbus-1-dev \
+            patchelf
 
       - name: Configure
-        run: |
-          cmake -B build \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DSDL_SHARED=OFF \
-            -DSDL_STATIC=ON \
-            -DSDL3TTF_SHARED=OFF \
-            -DSDL3TTF_STATIC=ON
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
         run: cmake --build build --parallel
@@ -37,6 +32,8 @@ jobs:
           mkdir -p dist/pong-linux-x86_64
           cp build/Pong dist/pong-linux-x86_64/
           cp -r assets dist/pong-linux-x86_64/
+          ldd build/Pong | awk '/libSDL/{print $3}' | xargs -I{} cp -L {} dist/pong-linux-x86_64/
+          patchelf --set-rpath '$ORIGIN' dist/pong-linux-x86_64/Pong
           tar -czf pong-linux-x86_64.tar.gz -C dist pong-linux-x86_64
 
       - uses: actions/upload-artifact@v4
