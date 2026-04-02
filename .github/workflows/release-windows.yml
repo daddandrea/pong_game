@@ -1,0 +1,40 @@
+name: Release Windows
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. v1.0.3)'
+        required: true
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path dist\pong-windows-x86_64
+          Copy-Item build\Release\Pong.exe dist\pong-windows-x86_64\
+          Copy-Item -Recurse assets dist\pong-windows-x86_64\assets
+          Get-ChildItem build\Release\*.dll | Copy-Item -Destination dist\pong-windows-x86_64\
+          Compress-Archive -Path dist\pong-windows-x86_64 -DestinationPath pong-windows-x86_64.zip
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          files: pong-windows-x86_64.zip
+        permissions:
+          contents: write
