@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 set -e
 
-cmake -B build -DCMAKE_BUILD_TYPE=Release
+BUILD_TYPE=Release
+if [[ "$1" == "--debug" ]]; then
+    BUILD_TYPE=Debug
+fi
+
+cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE
 cmake --build build --parallel "$(nproc)"
 
-ln -s ./build/Pong ./Pong
+ln -sf ./build/Pong ./Pong
