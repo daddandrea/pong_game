@@ -85,7 +85,6 @@ add_executable(Pong
     src/game/CpuController.cpp
     src/game/Physics.cpp
     src/scenes/SceneManager.cpp
-    src/scenes/DevMenu.cpp
     src/scenes/MainMenuScene.cpp
     src/scenes/GameScene.cpp
     src/scenes/PauseScene.cpp
@@ -93,6 +92,11 @@ add_executable(Pong
     third_party/stb_vorbis.cpp
     src/core/AudioManager.cpp
 )
+
+if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+    target_compile_definitions(Pong PRIVATE PONG_DEV)
+    target_sources(Pong PRIVATE src/scenes/DevMenu.cpp)
+endif()
 
 target_include_directories(Pong PRIVATE src third_party)
 
