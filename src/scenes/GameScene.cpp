@@ -3,6 +3,7 @@
 #include "core/InputState.hpp"
 #include "game/DevSettings.hpp"
 #include "game/GameConfig.hpp"
+#include "game/GameSettings.hpp"
 #include "game/Math.hpp"
 #include "game/Physics.hpp"
 #include "renderer/Renderer2D.hpp"
@@ -51,7 +52,7 @@ std::string GameScene::update(const core::InputState& input, float dt) {
         case game::GamePhase::Countdown:
             m_timer -= dt;
             if (m_timer <= 0.0f) {
-                m_ball.launch(m_ball_goes_right, rand_bool());
+                m_ball.launch(m_ball_goes_right, rand_bool(), game::g_settings);
                 m_game_state.phase = game::GamePhase::Playing;
             }
             break;
@@ -67,21 +68,21 @@ std::string GameScene::update(const core::InputState& input, float dt) {
             const bool right_parry_key = input.is_pressed(Key::Enter);
 
             if (m_config.left == game::PlayerType::Human) {
-                m_left_paddle.update(dt, left_up, left_down);
+                m_left_paddle.update(dt, left_up, left_down, game::g_settings);
             } else {
-                m_cpu.update(m_left_paddle, m_ball, dt);
+                m_cpu.update(m_left_paddle, m_ball, dt, game::g_settings);
             }
 
             if (m_config.right == game::PlayerType::Human) {
-                m_right_paddle.update(dt, right_up, right_down);
+                m_right_paddle.update(dt, right_up, right_down, game::g_settings);
             } else {
-                m_cpu.update(m_right_paddle, m_ball, dt);
+                m_cpu.update(m_right_paddle, m_ball, dt, game::g_settings);
             }
 
 
             // ── Ball physics ──────────────────────────────────────────────────
             m_ball.update(dt);
-            if (game::handle_wall_bounce(m_ball))
+            if (game::handle_wall_bounce(m_ball, game::g_settings))
                 core::AudioManager::get().play(core::AudioManager::Sound::WallHit);
 
             const bool approaching_left  = m_ball.hor_dir < 0.0f;
@@ -95,15 +96,15 @@ std::string GameScene::update(const core::InputState& input, float dt) {
                                   && approaching_right
                                   && m_config.right == game::PlayerType::Human;
 
-            if (game::handle_ball_paddle_collision(m_ball, m_left_paddle, left_parry))
+            if (game::handle_ball_paddle_collision(m_ball, m_left_paddle, game::g_settings, left_parry))
                 core::AudioManager::get().play(core::AudioManager::Sound::PaddleHit);
 
-            if (game::handle_ball_paddle_collision(m_ball, m_right_paddle, right_parry))
+            if (game::handle_ball_paddle_collision(m_ball, m_right_paddle, game::g_settings, right_parry))
                 core::AudioManager::get().play(core::AudioManager::Sound::PaddleHit);
 
 
             // ── Scoring ─────────────────────────────────────────────────────────
-            const int scored = game::calc_score(m_ball);
+            const int scored = game::calc_score(m_ball, game::g_settings);
             if (scored != 0) {
                 core::AudioManager::get().play(core::AudioManager::Sound::Score);
                 if (scored > 0) m_game_state.score_right++;
@@ -165,17 +166,17 @@ void GameScene::render(renderer::Renderer2D& r) const {
 
     // ── Paddles ─────────────────────────────────────────────────────────
     r.draw_quad(m_left_paddle.pos,
-                {game::PADDLE_HALF_W * 2.0f, game::g_dev.paddle_half_h * 2.0f},
+                {game::PADDLE_HALF_W * 2.0f, game::g_settings.paddle_half_h * 2.0f},
                 Colors::PlayerLeft);
 
     r.draw_quad(m_right_paddle.pos,
-                {game::PADDLE_HALF_W * 2.0f, game::g_dev.paddle_half_h * 2.0f},
+                {game::PADDLE_HALF_W * 2.0f, game::g_settings.paddle_half_h * 2.0f},
                 Colors::PlayerRight);
 
 
     // ── Ball ─────────────────────────────────────────────────────────
     if (m_ball.in_play) {
-        r.draw_circle(m_ball.pos, game::g_dev.ball_radius, Colors::BallColor);
+        r.draw_circle(m_ball.pos, game::g_settings.ball_radius, Colors::BallColor);
     }
 
     // ── Scores ─────────────────────────────────────────────────────────

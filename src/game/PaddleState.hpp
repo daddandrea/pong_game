@@ -2,6 +2,7 @@
 
 #include "Math.hpp"
 #include "game/Collider.hpp"
+#include "game/GameSettings.hpp"
 #include <glm/glm.hpp>
 
 namespace game {
@@ -15,13 +16,13 @@ struct PaddleState {
 
     explicit PaddleState(PaddleSide s);
 
-    void update(float dt, bool move_up, bool move_down);
+    void update(float dt, bool move_up, bool move_down, const GameSettings& settings);
 
     bool parry_on_cooldown() const { return parry_timer > 0.0f; };
 
-    void trigger_parry();
+    void trigger_parry(const GameSettings& settings);
 
-    RectCollider collider() const;
+    RectCollider collider(const GameSettings& settings) const;
 };
 
 }

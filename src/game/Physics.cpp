@@ -2,25 +2,25 @@
 
 #include "game/BallState.hpp"
 #include "game/Collider.hpp"
+#include "game/GameSettings.hpp"
 #include "game/Math.hpp"
-#include "game/DevSettings.hpp"
 #include "game/PaddleState.hpp"
 
 #include <algorithm>
 
 namespace game {
 
-bool handle_ball_paddle_collision(BallState &ball, PaddleState &paddle, bool parry_active) {
+bool handle_ball_paddle_collision(BallState& ball, PaddleState& paddle, const GameSettings& settings, bool parry_active) {
     if (!ball.in_play) return false;
 
-    const CircleCollider bc = ball.collider();
-    const RectCollider   pc = paddle.collider();
+    const CircleCollider bc = ball.collider(settings);
+    const RectCollider   pc = paddle.collider(settings);
 
     if (!intersects(bc, pc)) return false;
 
     /// Collision position relative to paddle center [-1; +1].
     const float rel_pos = std::clamp(
-        (ball.pos.y - paddle.pos.y) / g_dev.paddle_half_h,
+        (ball.pos.y - paddle.pos.y) / settings.paddle_half_h,
         -1.0f,
         1.0f
     );
@@ -35,24 +35,24 @@ bool handle_ball_paddle_collision(BallState &ball, PaddleState &paddle, bool par
 
     // Prevent the ball from sticking to the paddle
     if (ball.hor_dir < 0.0f)
-        ball.pos.x = pc.right() + g_dev.ball_radius + 0.0001f;
+        ball.pos.x = pc.right() + settings.ball_radius + 0.0001f;
     else
-        ball.pos.x = pc.left()  - g_dev.ball_radius - 0.0001f;
+        ball.pos.x = pc.left()  - settings.ball_radius - 0.0001f;
 
-    ball.bounce_from_paddle(new_ver_dir, parry_active && !paddle.parry_on_cooldown());
+    ball.bounce_from_paddle(new_ver_dir, settings, parry_active && !paddle.parry_on_cooldown());
 
     if (parry_active && !paddle.parry_on_cooldown()) {
-        paddle.trigger_parry();
+        paddle.trigger_parry(settings);
     }
 
     return true;
 }
 
-int calc_score(const BallState &ball) {
+int calc_score(const BallState& ball, const GameSettings& settings) {
     if (!ball.in_play) return 0;
 
-    if (ball.pos.x - g_dev.ball_radius <= ARENA_LEFT)  return 1;   // Point for right 
-    if (ball.pos.x + g_dev.ball_radius >= ARENA_RIGHT) return -1; // Point for left 
+    if (ball.pos.x - settings.ball_radius <= ARENA_LEFT)  return 1;   // Point for right
+    if (ball.pos.x + settings.ball_radius >= ARENA_RIGHT) return -1; // Point for left
 
     return 0;
 }
@@ -62,20 +62,20 @@ bool is_game_over(int score_left, int score_right, int win_score) {
         || score_right >= win_score;
 }
 
-bool handle_wall_bounce(BallState &ball) {
+bool handle_wall_bounce(BallState& ball, const GameSettings& settings) {
     if (!ball.in_play) return false;
 
     bool bounced = false;
 
-    if (ball.pos.y + g_dev.ball_radius >= ARENA_TOP) {
+    if (ball.pos.y + settings.ball_radius >= ARENA_TOP) {
 
-        ball.pos.y = ARENA_TOP - g_dev.ball_radius - 0.001f;
+        ball.pos.y = ARENA_TOP - settings.ball_radius - 0.001f;
         ball.bounce_off_wall();
         bounced = true;
 
-    } else if (ball.pos.y - g_dev.ball_radius <= ARENA_BOTTOM) {
+    } else if (ball.pos.y - settings.ball_radius <= ARENA_BOTTOM) {
 
-        ball.pos.y = ARENA_BOTTOM + g_dev.ball_radius + 0.001f;
+        ball.pos.y = ARENA_BOTTOM + settings.ball_radius + 0.001f;
         ball.bounce_off_wall();
         bounced = true;
 

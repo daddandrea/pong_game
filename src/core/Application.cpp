@@ -1,5 +1,6 @@
 #include "Application.hpp"
 #include "core/Logger.hpp"
+#include "game/GameSettings.hpp"
 #include "scenes/CreditsScene.hpp"
 #include "scenes/DevMenu.hpp"
 #include "scenes/GameScene.hpp"
@@ -164,7 +165,7 @@ void Application::run() {
         m_scene_manager->render(*m_renderer);
 
         game::GameState* state = m_scene_manager->find_game_state();
-        scenes::render_dev_menu(state);
+        scenes::render_dev_menu(state, game::g_settings);
         dismiss_overlay_if_game_over();
 
         ImGui::Render();
