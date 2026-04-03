@@ -26,8 +26,6 @@ jobs:
             pong_dev: ON
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-tags: true
 
       - name: Resolve tag
         id: tag
@@ -38,6 +36,7 @@ jobs:
           elif [ "${{ github.event_name }}" = "push" ]; then
             echo "value=${{ github.ref_name }}" >> $GITHUB_OUTPUT
           else
+            git fetch --tags --depth=1
             latest=$(git tag --sort=-version:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
             if [ -z "$latest" ]; then
               echo "value=0.0.1" >> $GITHUB_OUTPUT
