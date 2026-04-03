@@ -223,12 +223,15 @@ void Application::process_events() {
             }
 
             case SDL_EVENT_MOUSE_MOTION:
-                m_input.mouse.x = px_to_world_x(event.motion.x, win_w);
-                m_input.mouse.y = py_to_world_y(event.motion.y, win_h);
+                if (!ImGui::GetIO().WantCaptureMouse) {
+                    m_input.mouse.x = px_to_world_x(event.motion.x, win_w);
+                    m_input.mouse.y = py_to_world_y(event.motion.y, win_h);
+                }
                 break;
 
             case SDL_EVENT_MOUSE_BUTTON_DOWN:
-                if (event.button.button == SDL_BUTTON_LEFT) {
+                if (event.button.button == SDL_BUTTON_LEFT
+                    && !ImGui::GetIO().WantCaptureMouse) {
                     m_input.mouse.x = px_to_world_x(event.motion.x, win_w);
                     m_input.mouse.y = py_to_world_y(event.motion.y, win_h);
                     m_input.mouse.left_held = true;
@@ -238,7 +241,8 @@ void Application::process_events() {
                 break;
 
             case SDL_EVENT_MOUSE_BUTTON_UP:
-                if (event.button.button == SDL_BUTTON_LEFT) {
+                if (event.button.button == SDL_BUTTON_LEFT
+                    && !ImGui::GetIO().WantCaptureMouse) {
                     m_input.mouse.left_held = true;
                     m_input.mouse.left_pressed = false;
                     m_input.mouse.left_released = true;
