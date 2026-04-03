@@ -7,16 +7,46 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to release (e.g. v1.0.3)'
-        required: true
+        description: 'Tag to release (e.g. 1.0.3) — leave blank to auto-increment patch'
+        required: false
 
 jobs:
   build-linux:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    strategy:
+      matrix:
+        include:
+          - build_type: Release
+            suffix: ''
+            pong_dev: OFF
+          - build_type: Debug
+            suffix: '-dev'
+            pong_dev: ON
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-tags: true
+
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ -n "${{ inputs.tag }}" ]; then
+            echo "value=${{ inputs.tag }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            echo "value=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            latest=$(git tag --sort=-version:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+            if [ -z "$latest" ]; then
+              echo "value=0.0.1" >> $GITHUB_OUTPUT
+            else
+              major=$(echo $latest | cut -d. -f1)
+              minor=$(echo $latest | cut -d. -f2)
+              patch=$(echo $latest | cut -d. -f3)
+              echo "value=$major.$minor.$((patch + 1))" >> $GITHUB_OUTPUT
+            fi
+          fi
 
       - name: Install dependencies
         run: |
@@ -30,22 +60,23 @@ jobs:
             patchelf
 
       - name: Configure
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DPONG_DEV=${{ matrix.pong_dev }}
 
       - name: Build
         run: cmake --build build --parallel
 
       - name: Package
         run: |
-          mkdir -p dist/pong-linux-x86_64
-          cp build/Pong dist/pong-linux-x86_64/
-          cp -r assets dist/pong-linux-x86_64/
-          ldd build/Pong | awk '/libSDL/{print $3}' | xargs -I{} cp -L {} dist/pong-linux-x86_64/
-          patchelf --set-rpath '$ORIGIN' dist/pong-linux-x86_64/Pong
-          tar -czf pong-linux-x86_64.tar.gz -C dist pong-linux-x86_64
+          mkdir -p dist/pong-linux-x86_64${{ matrix.suffix }}
+          cp build/Pong dist/pong-linux-x86_64${{ matrix.suffix }}/
+          cp -r assets dist/pong-linux-x86_64${{ matrix.suffix }}/
+          ldd build/Pong | awk '/libSDL/{print $3}' | xargs -I{} cp -L {} dist/pong-linux-x86_64${{ matrix.suffix }}/
+          patchelf --set-rpath '$ORIGIN' dist/pong-linux-x86_64${{ matrix.suffix }}/Pong
+          tar -czf pong-linux-x86_64${{ matrix.suffix }}.tar.gz -C dist pong-linux-x86_64${{ matrix.suffix }}
 
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.tag || github.ref_name }}
-          files: pong-linux-x86_64.tar.gz
+          tag_name: ${{ steps.tag.outputs.value }}
+          files: pong-linux-x86_64${{ matrix.suffix }}.tar.gz
+          generate_release_notes: true

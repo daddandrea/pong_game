@@ -7,34 +7,66 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to release (e.g. v1.0.3)'
-        required: true
+        description: 'Tag to release (e.g. 1.0.3) — leave blank to auto-increment patch'
+        required: false
 
 jobs:
   build-windows:
     runs-on: windows-latest
     permissions:
       contents: write
+    strategy:
+      matrix:
+        include:
+          - build_type: Release
+            suffix: ''
+            pong_dev: OFF
+          - build_type: Debug
+            suffix: '-dev'
+            pong_dev: ON
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-tags: true
+
+      - name: Resolve tag
+        id: tag
+        shell: bash
+        run: |
+          if [ -n "${{ inputs.tag }}" ]; then
+            echo "value=${{ inputs.tag }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            echo "value=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            latest=$(git tag --sort=-version:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+            if [ -z "$latest" ]; then
+              echo "value=0.0.1" >> $GITHUB_OUTPUT
+            else
+              major=$(echo $latest | cut -d. -f1)
+              minor=$(echo $latest | cut -d. -f2)
+              patch=$(echo $latest | cut -d. -f3)
+              echo "value=$major.$minor.$((patch + 1))" >> $GITHUB_OUTPUT
+            fi
+          fi
 
       - name: Configure
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DPONG_DEV=${{ matrix.pong_dev }}
 
       - name: Build
-        run: cmake --build build --config Release --parallel
+        run: cmake --build build --config ${{ matrix.build_type }} --parallel
 
       - name: Package
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Path dist\pong-windows-x86_64
-          Copy-Item build\Release\Pong.exe dist\pong-windows-x86_64\
-          Copy-Item -Recurse assets dist\pong-windows-x86_64\assets
-          Get-ChildItem build\Release\*.dll | Copy-Item -Destination dist\pong-windows-x86_64\
-          Compress-Archive -Path dist\pong-windows-x86_64 -DestinationPath pong-windows-x86_64.zip
+          New-Item -ItemType Directory -Path dist\pong-windows-x86_64${{ matrix.suffix }}
+          Copy-Item build\${{ matrix.build_type }}\Pong.exe dist\pong-windows-x86_64${{ matrix.suffix }}\
+          Copy-Item -Recurse assets dist\pong-windows-x86_64${{ matrix.suffix }}\assets
+          Get-ChildItem build\${{ matrix.build_type }}\*.dll | Copy-Item -Destination dist\pong-windows-x86_64${{ matrix.suffix }}\
+          Compress-Archive -Path dist\pong-windows-x86_64${{ matrix.suffix }} -DestinationPath pong-windows-x86_64${{ matrix.suffix }}.zip
 
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.tag || github.ref_name }}
-          files: pong-windows-x86_64.zip
+          tag_name: ${{ steps.tag.outputs.value }}
+          files: pong-windows-x86_64${{ matrix.suffix }}.zip
+          generate_release_notes: true
