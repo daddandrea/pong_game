@@ -51,8 +51,8 @@ bool handle_ball_paddle_collision(BallState &ball, PaddleState &paddle, bool par
 int calc_score(const BallState &ball) {
     if (!ball.in_play) return 0;
 
-    if (ball.pos.x - BALL_RADIUS <= ARENA_LEFT)  return 1;   // Point for right 
-    if (ball.pos.x + BALL_RADIUS >= ARENA_RIGHT) return -1; // Point for left 
+    if (ball.pos.x - g_dev.ball_radius <= ARENA_LEFT)  return 1;   // Point for right 
+    if (ball.pos.x + g_dev.ball_radius >= ARENA_RIGHT) return -1; // Point for left 
 
     return 0;
 }
@@ -67,15 +67,15 @@ bool handle_wall_bounce(BallState &ball) {
 
     bool bounced = false;
 
-    if (ball.pos.y + BALL_RADIUS >= ARENA_TOP) {
+    if (ball.pos.y + g_dev.ball_radius >= ARENA_TOP) {
 
-        ball.pos.y = ARENA_TOP - BALL_RADIUS - 0.001f;
+        ball.pos.y = ARENA_TOP - g_dev.ball_radius - 0.001f;
         ball.bounce_off_wall();
         bounced = true;
 
-    } else if (ball.pos.y - BALL_RADIUS <= ARENA_BOTTOM) {
+    } else if (ball.pos.y - g_dev.ball_radius <= ARENA_BOTTOM) {
 
-        ball.pos.y = ARENA_BOTTOM + BALL_RADIUS + 0.001f;
+        ball.pos.y = ARENA_BOTTOM + g_dev.ball_radius + 0.001f;
         ball.bounce_off_wall();
         bounced = true;
 
