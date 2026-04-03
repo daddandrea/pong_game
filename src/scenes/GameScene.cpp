@@ -1,7 +1,9 @@
 #include "GameScene.hpp"
 #include "core/AudioManager.hpp"
 #include "core/InputState.hpp"
+#ifdef PONG_DEV
 #include "game/DevSettings.hpp"
+#endif
 #include "game/GameConfig.hpp"
 #include "game/GameSettings.hpp"
 #include "game/Math.hpp"
@@ -46,7 +48,9 @@ std::string GameScene::update(const core::InputState& input, float dt) {
     using namespace core;
 
     if (input.is_pressed(Key::Escape)) return Transition::Push(Transition::Pause);
+#ifdef PONG_DEV
     if (input.is_pressed(Key::F1)) game::g_dev.show_dev = !game::g_dev.show_dev;
+#endif
 
     switch (m_game_state.phase) {
         case game::GamePhase::Countdown:

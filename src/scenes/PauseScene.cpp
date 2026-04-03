@@ -1,6 +1,8 @@
 #include "PauseScene.hpp"
 #include "core/InputState.hpp"
+#ifdef PONG_DEV
 #include "game/DevSettings.hpp"
+#endif
 #include "renderer/Renderer2D.hpp"
 #include "scenes/Colors.hpp"
 #include "scenes/IScene.hpp"
@@ -33,7 +35,9 @@ std::string PauseScene::update(const core::InputState& input, float dt) {
     (void)dt;
 
     if (input.is_pressed(core::Key::Escape)) return Transition::Pop;
+#ifdef PONG_DEV
     if (input.is_pressed(core::Key::F1)) game::g_dev.show_dev = !game::g_dev.show_dev;
+#endif
 
     for (auto& btn : m_buttons) {
         btn.hovered = btn.contains({input.mouse.x, input.mouse.y});
