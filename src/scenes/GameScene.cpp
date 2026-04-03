@@ -22,10 +22,10 @@ GameScene::GameScene()
 
 void GameScene::on_enter() {
     m_config = game::g_config;
-    game::g_dev.win_score = game::g_dev.win_score;
 
-    m_score_left = 0;
-    m_score_right = 0;
+    m_game_state.score_left  = 0;
+    m_game_state.score_right = 0;
+    m_game_state.win_score   = m_config.win_score;
     m_ball_goes_right = rand_bool();
 
     m_left_paddle  = game::PaddleState(game::PaddleSide::Left);
@@ -37,7 +37,7 @@ void GameScene::on_enter() {
 void GameScene::reset_round(bool ball_goes_right) {
     m_ball.reset();
     m_ball_goes_right = ball_goes_right;
-    m_phase = GamePhase::Countdown;
+    m_game_state.phase = game::GamePhase::Countdown;
     m_timer = COUNTDOWN_TIME;
 }
 
@@ -47,16 +47,16 @@ std::string GameScene::update(const core::InputState& input, float dt) {
     if (input.is_pressed(Key::Escape)) return Transition::Push(Transition::Pause);
     if (input.is_pressed(Key::F1)) game::g_dev.show_dev = !game::g_dev.show_dev;
 
-    switch (m_phase) {
-        case GamePhase::Countdown:
+    switch (m_game_state.phase) {
+        case game::GamePhase::Countdown:
             m_timer -= dt;
             if (m_timer <= 0.0f) {
                 m_ball.launch(m_ball_goes_right, rand_bool());
-                m_phase = GamePhase::Playing;
+                m_game_state.phase = game::GamePhase::Playing;
             }
             break;
 
-        case GamePhase::Playing: {
+        case game::GamePhase::Playing: {
             // ── Move paddles ──────────────────────────────────────────────────
             const bool left_up         = input.is_held(Key::W);
             const bool left_down       = input.is_held(Key::S);
@@ -103,36 +103,36 @@ std::string GameScene::update(const core::InputState& input, float dt) {
 
 
             // ── Scoring ─────────────────────────────────────────────────────────
-            const int scored = game::check_score(m_ball);
+            const int scored = game::calc_score(m_ball);
             if (scored != 0) {
                 core::AudioManager::get().play(core::AudioManager::Sound::Score);
-                if (scored > 0) m_score_right++;
-                else            m_score_left++;
+                if (scored > 0) m_game_state.score_right++;
+                else            m_game_state.score_left++;
 
                 m_ball.reset();
-                m_phase = GamePhase::PointScored;
+                m_game_state.phase = game::GamePhase::PointScored;
                 m_timer = POINT_FREEZE_TIME;
 
                 m_ball_goes_right = (scored > 0);
 
-                if (game::is_game_over(m_score_left, m_score_right, game::g_dev.win_score)) {
-                    m_winner = (m_score_left >= game::g_dev.win_score)
-                                 ? Winner::Left
-                                 : Winner::Right;
-                    m_phase = GamePhase::GameOver;
+                if (game::is_game_over(m_game_state.score_left, m_game_state.score_right, m_game_state.win_score)) {
+                    m_game_state.winner = (m_game_state.score_left >= m_game_state.win_score)
+                                 ? game::Winner::Left
+                                 : game::Winner::Right;
+                    m_game_state.phase = game::GamePhase::GameOver;
                 }
             }
             break;
         }
 
-        case GamePhase::PointScored:
+        case game::GamePhase::PointScored:
             m_timer -= dt;
             if (m_timer <= 0.0f)
                 reset_round(m_ball_goes_right);
 
             break;
 
-        case GamePhase::GameOver:
+        case game::GamePhase::GameOver:
             if (input.is_pressed(Key::Space) || input.is_pressed(Key::Escape))
                 return Transition::MainMenu;
             break;
@@ -179,26 +179,26 @@ void GameScene::render(renderer::Renderer2D& r) const {
     }
 
     // ── Scores ─────────────────────────────────────────────────────────
-    r.draw_text(std::to_string(m_score_left),  -4.0f, 4.8f, 1.8f, Colors::PlayerLeft);
-    r.draw_text(std::to_string(m_score_right),  4.0f, 4.8f, 1.8f, Colors::PlayerRight);
+    r.draw_text(std::to_string(m_game_state.score_left),  -4.0f, 4.8f, 1.8f, Colors::PlayerLeft);
+    r.draw_text(std::to_string(m_game_state.score_right),  4.0f, 4.8f, 1.8f, Colors::PlayerRight);
 
     // ── Phase overlay ─────────────────────────────────────────────────────────
-    switch (m_phase) {
-        case GamePhase::Countdown:
+    switch (m_game_state.phase) {
+        case game::GamePhase::Countdown:
             r.draw_text("Get ready!", 0.0f, 0.5f, 1.0f, Colors::MainWhite);
             r.draw_text(std::to_string(static_cast<int>(m_timer) + 1), 0.0f, -0.8f, 2.0f, Colors::MainWhite);
             break;
 
-        case GamePhase::PointScored:
+        case game::GamePhase::PointScored:
             r.draw_text("Point!", 0.0f, 0.0f, 1.2f, Colors::MainWhite);
             break;
 
-        case GamePhase::GameOver: {
-            const char* winner = (m_winner == Winner::Left)
+        case game::GamePhase::GameOver: {
+            const char* winner = (m_game_state.winner == game::Winner::Left)
                                    ? "Left player wins!"
                                    : "Right player wins";
 
-            const glm::vec4 col = (m_winner == Winner::Left)
+            const glm::vec4 col = (m_game_state.winner == game::Winner::Left)
                                     ? Colors::PlayerLeft
                                     : Colors::PlayerLeft;
 

@@ -85,6 +85,7 @@ add_executable(Pong
     src/game/CpuController.cpp
     src/game/Physics.cpp
     src/scenes/SceneManager.cpp
+    src/scenes/DevMenu.cpp
     src/scenes/MainMenuScene.cpp
     src/scenes/GameScene.cpp
     src/scenes/PauseScene.cpp

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "game/GameState.hpp"
 #include <string>
 
 namespace core { struct InputState; }
@@ -45,5 +46,7 @@ public:
     virtual std::string update(const core::InputState& input, float dt) = 0;
 
     virtual void render(renderer::Renderer2D& r) const = 0;
+
+    virtual game::GameState* get_game_state() { return nullptr; }
 };
 }

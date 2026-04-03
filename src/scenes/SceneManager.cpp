@@ -5,6 +5,17 @@
 
 namespace scenes {
 
+void SceneManager::pop() {
+    do_pop_scene();
+}
+
+game::GameState* SceneManager::find_game_state() const {
+    for (auto it = m_stack.rbegin(); it != m_stack.rend(); ++it)
+        if (auto* s = (*it)->get_game_state())
+            return s;
+    return nullptr;
+}
+
 void SceneManager::register_scene(const std::string& name, Factory f) {
     m_factories[name] = std::move(f);
 }

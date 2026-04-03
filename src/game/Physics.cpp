@@ -48,7 +48,7 @@ bool handle_ball_paddle_collision(BallState &ball, PaddleState &paddle, bool par
     return true;
 }
 
-int check_score(const BallState &ball) {
+int calc_score(const BallState &ball) {
     if (!ball.in_play) return 0;
 
     if (ball.pos.x - BALL_RADIUS <= ARENA_LEFT)  return 1;   // Point for right 

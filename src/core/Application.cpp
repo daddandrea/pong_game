@@ -10,8 +10,8 @@
 
 #include <glad/glad.h>
 #include <imgui.h>
-#include <imgui_impl_sdl3.h>
 #include <imgui_impl_opengl3.h>
+#include <imgui_impl_sdl3.h>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_filesystem.h>
@@ -154,6 +154,7 @@ void Application::run() {
         const std::string next = m_scene_manager->update(m_input, dt);
         if (next == Transition::Quit) {
             m_window.set_should_close(true);
+            ImGui::EndFrame();
             break;
         }
 
@@ -161,7 +162,10 @@ void Application::run() {
         glClear(GL_COLOR_BUFFER_BIT);
 
         m_scene_manager->render(*m_renderer);
-        scenes::render_dev_menu();
+
+        game::GameState* state = m_scene_manager->find_game_state();
+        scenes::render_dev_menu(state);
+        dismiss_overlay_if_game_over();
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -244,6 +248,13 @@ void Application::process_events() {
                 break;
         }
     }
+}
+
+void Application::dismiss_overlay_if_game_over() {
+    game::GameState* state = m_scene_manager->find_game_state();
+    if (state && state->phase == game::GamePhase::GameOver
+        && m_scene_manager->top()->get_game_state() == nullptr)
+        m_scene_manager->pop();
 }
 
 void Application::quit() { TTF_Quit(); }

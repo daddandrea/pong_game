@@ -4,7 +4,6 @@
 namespace game {
 struct DevSettings {
     bool  show_dev          = false;
-    int   win_score         = 7;
     float ball_base_speed   = BALL_BASE_SPEED;
     float ball_speed_step   = BALL_SPEED_STEP;
     float ball_parry_mult   = BALL_PARRY_MULT;

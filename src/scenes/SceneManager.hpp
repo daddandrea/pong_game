@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/InputState.hpp"
+#include "game/GameState.hpp"
 
 #include <functional>
 #include <map>
@@ -28,10 +29,15 @@ public:
     void register_scene(const std::string& name, Factory f);
 
     void push(const std::string& name);
+    void pop();
 
     std::string update(const core::InputState& input, float dt);
 
     void render(renderer::Renderer2D& r) const;
+
+    IScene* top() const { return m_stack.empty() ? nullptr : m_stack.back().get(); }
+
+    game::GameState* find_game_state() const;
 
 private:
     std::map<std::string, Factory> m_factories;

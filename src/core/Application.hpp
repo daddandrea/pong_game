@@ -30,6 +30,7 @@ public:
 private:
     void clear_frame_state();
     void process_events();
+    void dismiss_overlay_if_game_over();
 
     Window m_window;
     InputState m_input;

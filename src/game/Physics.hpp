@@ -7,7 +7,7 @@ struct PaddleState;
 
 bool handle_ball_paddle_collision(BallState& ball, PaddleState& paddle, bool parry_active = false);
 
-int check_score(const BallState& ball);
+int calc_score(const BallState& ball);
 
 bool is_game_over(int score_left, int score_right, int win_score);
 
