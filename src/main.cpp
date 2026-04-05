@@ -3,7 +3,8 @@
 
 #include <SDL3/SDL_main.h>
 
-int main() {
+int main(int argc, char* argv[]) {
+    (void)argc; (void)argv;
 
     if (!core::Application::init()) return 1;
 
