@@ -68,6 +68,7 @@ jobs:
         run: |
           mkdir -p dist/pong-linux-x86_64${{ matrix.suffix }}
           cp build/Pong dist/pong-linux-x86_64${{ matrix.suffix }}/
+          cp build/update.sh dist/pong-linux-x86_64${{ matrix.suffix }}/
           cp -r assets dist/pong-linux-x86_64${{ matrix.suffix }}/
           ldd build/Pong | awk '/libSDL/{print $3}' | xargs -I{} cp -L {} dist/pong-linux-x86_64${{ matrix.suffix }}/
           patchelf --set-rpath '$ORIGIN' dist/pong-linux-x86_64${{ matrix.suffix }}/Pong

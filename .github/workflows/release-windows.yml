@@ -59,6 +59,7 @@ jobs:
         run: |
           New-Item -ItemType Directory -Path dist\pong-windows-x86_64${{ matrix.suffix }}
           Copy-Item build\${{ matrix.build_type }}\Pong.exe dist\pong-windows-x86_64${{ matrix.suffix }}\
+          Copy-Item build\${{ matrix.build_type }}\update.bat dist\pong-windows-x86_64${{ matrix.suffix }}\
           Copy-Item -Recurse assets dist\pong-windows-x86_64${{ matrix.suffix }}\assets
           Get-ChildItem build\${{ matrix.build_type }}\*.dll | Copy-Item -Destination dist\pong-windows-x86_64${{ matrix.suffix }}\
           Compress-Archive -Path dist\pong-windows-x86_64${{ matrix.suffix }} -DestinationPath pong-windows-x86_64${{ matrix.suffix }}-${{ steps.tag.outputs.value }}.zip
