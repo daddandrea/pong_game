@@ -5,6 +5,10 @@
 #include "scenes/Colors.hpp"
 #include "scenes/IScene.hpp"
 
+#ifndef PONG_VERSION
+#define PONG_VERSION "0.0.0"
+#endif
+
 
 namespace scenes {
 // ── Button ────────────────────────────────────────────────────────────────────
@@ -80,6 +84,7 @@ std::string MainMenuScene::update(const core::InputState& input, float dt) {
 void MainMenuScene::render(renderer::Renderer2D& r) const {
     r.draw_text("PONG", 0.0f, 4.5f, 2.5f, Colors::MainWhite);
     r.draw_text("OpenGL learning experiment", 0.0f, 3.2f, 0.55f, Colors::MainSubtle);
+    r.draw_text("v" PONG_VERSION, 9.2f, -5.7f, 0.4f, Colors::MainSubtle);
 
     for (const auto& btn : m_buttons) {
         const glm::vec4 col = btn.hovered

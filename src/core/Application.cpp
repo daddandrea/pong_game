@@ -88,7 +88,12 @@ static std::string find_font() {
                     "Place LiberationMono-Regular.ttf in assets/fonts/ next to the executable."));
 }
 
+#ifndef PONG_VERSION
+#define PONG_VERSION "0.0.0"
+#endif
+
 Application::Application() : m_window("Pong", WIN_W, WIN_H) {
+    Log::info("Pong v{}", PONG_VERSION);
 
     m_renderer = std::make_unique<renderer::Renderer2D>();
 
@@ -166,17 +171,44 @@ void Application::run() {
 
         m_scene_manager->render(*m_renderer);
 
-        if (m_updater.status() == Updater::Status::UpdateAvailable) {
-            ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Always, { 0.5f, 0.5f });
-            ImGui::Begin("Update Available", nullptr,
-                ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-                ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize);
-            ImGui::Text("Version %s is available. Update now?", m_updater.latest_version().c_str());
+        const auto update_status = m_updater.status();
+        if (update_status == Updater::Status::UpdateAvailable  ||
+            update_status == Updater::Status::Downloading      ||
+            update_status == Updater::Status::InstallFailed) {
+
+            ImGui::OpenPopup("Update Available");
+        }
+
+        ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Always, { 0.5f, 0.5f });
+        ImGui::SetNextWindowSize({ 480.f, 0.f }, ImGuiCond_Always);
+        if (ImGui::BeginPopupModal("Update Available", nullptr,
+                ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse)) {
+
+            const auto update_status = m_updater.status();
             ImGui::Spacing();
-            if (ImGui::Button("Yes")) m_updater.download_and_install();
-            ImGui::SameLine();
-            if (ImGui::Button("Later"))  m_updater.dismiss();
-            ImGui::End();
+
+            if (update_status == Updater::Status::Downloading) {
+                ImGui::Text("Downloading version %s...", m_updater.latest_version().c_str());
+            } else if (update_status == Updater::Status::InstallFailed) {
+                ImGui::TextColored({ 1.f, 0.3f, 0.3f, 1.f }, "Update failed. Please try again later.");
+                ImGui::Spacing();
+                if (ImGui::Button("Close", { 120.f, 0.f })) {
+                    m_updater.dismiss();
+                    ImGui::CloseCurrentPopup();
+                }
+            } else {
+                ImGui::Text("Version %s is available. Update now?", m_updater.latest_version().c_str());
+                ImGui::Spacing();
+                if (ImGui::Button("Yes",   { 120.f, 0.f })) m_updater.download_and_install();
+                ImGui::SameLine();
+                if (ImGui::Button("Later", { 120.f, 0.f })) {
+                    m_updater.dismiss();
+                    ImGui::CloseCurrentPopup();
+                }
+            }
+
+            ImGui::Spacing();
+            ImGui::EndPopup();
         }
 
         game::GameState* state = m_scene_manager->find_game_state();

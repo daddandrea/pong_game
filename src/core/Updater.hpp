@@ -8,7 +8,7 @@ namespace core {
 
 class Updater {
 public:
-    enum class Status { Idle, Checking, UpdateAvailable, UpToDate, Dismissed, Error };
+    enum class Status { Idle, Checking, UpdateAvailable, UpToDate, Dismissed, Downloading, InstallFailed, Error };
 
     Updater();
     ~Updater();
@@ -29,6 +29,7 @@ private:
 
     std::atomic<Status> m_status { Status::Idle };
     std::string         m_latest_version;
+    std::string         m_download_url;
     std::thread         m_thread;
 };
 

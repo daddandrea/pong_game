@@ -7,5 +7,5 @@ EXECUTABLE="$3"
 sleep 1
 tar -xzf "$ARCHIVE" -C "$INSTALL_DIR" --strip-components=1
 rm "$ARCHIVE"
-"$EXECUTABLE" &
+"$EXECUTABLE"
 rm -- "$0"

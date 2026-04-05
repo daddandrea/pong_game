@@ -4,15 +4,17 @@
 #include <httplib.h>
 #include <SDL3/SDL_filesystem.h>
 
-#include <cstdlib>
 #include <filesystem>
 #include <format>
 #include <fstream>
 #include <string>
 
+#include <SDL3/SDL_events.h>
+
 #ifdef _WIN32
 #include <windows.h>
 #else
+#include <fcntl.h>
 #include <unistd.h>
 #endif
 
@@ -44,19 +46,20 @@ static const std::string SCRIPT_NAME  = "update.sh";
 #endif
 
 /**
- * @brief Extracts the value of "tag_name" from a GitHub API JSON response.
+ * @brief Extracts the value of a string field from a GitHub API JSON response.
  *
- * Only handles the simple case: "tag_name": "1.2.3"
+ * Only handles the simple case: "key": "value"
  *
- * @param json Raw JSON string from the GitHub releases API.
- * @return The tag name string, or an empty string if not found.
+ * @param json Raw JSON string.
+ * @param key  The field name to look up (without quotes).
+ * @return The field value string, or an empty string if not found.
  */
-static std::string parse_tag(const std::string& json) {
-    const std::string key = "\"tag_name\"";
-    auto pos = json.find(key);
+static std::string parse_string_field(const std::string& json, const std::string& key) {
+    const std::string quoted_key = "\"" + key + "\"";
+    auto pos = json.find(quoted_key);
     if (pos == std::string::npos) return {};
     // skip past the key and colon/space to the opening quote of the value
-    pos = json.find('"', pos + key.size() + 1);
+    pos = json.find('"', pos + quoted_key.size() + 1);
     if (pos == std::string::npos) return {};
     auto end = json.find('"', pos + 1);
     if (end == std::string::npos) return {};
@@ -101,6 +104,65 @@ static int version_part(const std::string& v, int part) {
 }
 
 /**
+ * @brief Parses the host (with scheme) and path from a URL string.
+ *
+ * e.g. "https://example.com/foo/bar" -> host="https://example.com", path="/foo/bar"
+ *
+ * @param url   Full URL string.
+ * @param host  Output: scheme + host, e.g. "https://example.com".
+ * @param path  Output: path component, e.g. "/foo/bar".
+ */
+static void parse_url(const std::string& url, std::string& host, std::string& path) {
+    const std::string prefix = "https://";
+    const auto host_start    = url.substr(0, prefix.size()) == prefix ? prefix.size() : 0;
+    const auto path_start    = url.find('/', host_start);
+    host = prefix + url.substr(host_start, path_start - host_start);
+    path = url.substr(path_start);
+}
+
+/**
+ * @brief Performs a GET request and manually follows one redirect if needed.
+ *
+ * cpp-httplib does not reliably follow cross-domain HTTPS redirects.
+ * GitHub release asset URLs redirect from github.com to a CDN
+ * (objects.githubusercontent.com), so we handle the redirect explicitly.
+ *
+ * @param url Full URL to fetch.
+ * @return The final HTTP response, or nullptr on failure.
+ */
+static httplib::Result fetch_with_redirect(const std::string& url) {
+    std::string host, path;
+    parse_url(url, host, path);
+
+    httplib::Client cli(host);
+    cli.set_follow_location(false);
+    cli.set_connection_timeout(10);
+    cli.set_read_timeout(60);
+
+    auto res = cli.Get(path, {{ "User-Agent", "pong-updater" }});
+    if (!res) return res;
+
+    // follow one redirect if we get a 3xx with a Location header
+    if (res->status >= 300 && res->status < 400) {
+        const auto it = res->headers.find("Location");
+        if (it != res->headers.end()) {
+            std::string rhost, rpath;
+            parse_url(it->second, rhost, rpath);
+
+            httplib::Client rcli(rhost);
+            rcli.set_connection_timeout(10);
+            rcli.set_read_timeout(60);
+            return rcli.Get(rpath, {
+                { "User-Agent", "pong-updater" },
+                { "Accept",     "*/*"           }
+            });
+        }
+    }
+
+    return res;
+}
+
+/**
  * @brief Launches the update script with the given arguments.
  *
  * On Linux: uses fork + exec to avoid shell interpretation.
@@ -126,7 +188,7 @@ static void launch_script(
     PROCESS_INFORMATION pi = {};
     si.cb = sizeof(si);
     CreateProcessA(nullptr, cmd.data(), nullptr, nullptr, FALSE,
-                   CREATE_NEW_CONSOLE, nullptr, nullptr, &si, &pi);
+                   CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi);
     CloseHandle(pi.hProcess);
     CloseHandle(pi.hThread);
 #else
@@ -136,6 +198,18 @@ static void launch_script(
 
     pid_t pid = fork();
     if (pid == 0) {
+        setsid(); // detach from the parent's process group and terminal
+
+        // redirect stdin/stdout/stderr to /dev/null so the child
+        // and anything it launches don't inherit the terminal
+        int devnull = open("/dev/null", O_RDWR);
+        if (devnull >= 0) {
+            dup2(devnull, STDIN_FILENO);
+            dup2(devnull, STDOUT_FILENO);
+            dup2(devnull, STDERR_FILENO);
+            close(devnull);
+        }
+
         execl("/bin/sh", "sh",
             script.c_str(),
             archive.c_str(),
@@ -205,14 +279,35 @@ void Updater::do_check() {
         return;
     }
 
-    const std::string tag = parse_tag(res->body);
+    const std::string tag = parse_string_field(res->body, "tag_name");
     if (tag.empty()) {
         Log::warn("Updater: could not parse tag_name");
         m_status = Status::Error;
         return;
     }
 
+    // find the browser_download_url for the platform-specific archive
+    const std::string url = [&]() -> std::string {
+        const std::string& body = res->body;
+        std::string::size_type pos = 0;
+        while ((pos = body.find(ARCHIVE_NAME, pos)) != std::string::npos) {
+            // search backwards for browser_download_url on the same asset entry
+            auto url_pos = body.rfind("browser_download_url", pos);
+            if (url_pos != std::string::npos)
+                return parse_string_field(body.substr(url_pos), "browser_download_url");
+            ++pos;
+        }
+        return {};
+    }();
+
+    if (url.empty()) {
+        Log::warn("Updater: could not find download URL for {}", ARCHIVE_NAME);
+        m_status = Status::Error;
+        return;
+    }
+
     m_latest_version = tag;
+    m_download_url   = url;
 
     if (is_newer(tag, PONG_VERSION)) {
         Log::info("Updater: update available {} -> {}", PONG_VERSION, tag);
@@ -234,9 +329,12 @@ void Updater::download_and_install() {
 }
 
 void Updater::do_install() {
+    m_status = Status::Downloading;
+
     const char* base = SDL_GetBasePath();
     if (!base) {
         Log::error("Updater: SDL_GetBasePath failed");
+        m_status = Status::InstallFailed;
         return;
     }
 
@@ -249,20 +347,13 @@ void Updater::do_install() {
     const std::filesystem::path executable  = install_dir / "Pong";
 #endif
 
-    const std::string download_path = std::format(
-        "/{}/releases/download/{}/{}", PONG_GITHUB_REPO, m_latest_version, ARCHIVE_NAME);
+    Log::info("Updater: downloading {}", m_download_url);
 
-    Log::info("Updater: downloading {}", download_path);
-
-    httplib::Client cli(GITHUB_HOST);
-    cli.set_follow_location(true);
-    cli.set_connection_timeout(10);
-    cli.set_read_timeout(60);
-
-    auto res = cli.Get(download_path, {{ "User-Agent", "pong-updater" }});
+    auto res = fetch_with_redirect(m_download_url);
 
     if (!res || res->status != 200) {
         Log::error("Updater: download failed (status {})", res ? res->status : 0);
+        m_status = Status::InstallFailed;
         return;
     }
 
@@ -274,7 +365,10 @@ void Updater::do_install() {
     Log::info("Updater: saved archive to {}", archive.string());
 
     launch_script(script, archive, install_dir, executable);
-    std::exit(0);
+
+    SDL_Event quit;
+    quit.type = SDL_EVENT_QUIT;
+    SDL_PushEvent(&quit);
 }
 
 } // namespace core
