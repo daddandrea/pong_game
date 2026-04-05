@@ -160,9 +160,10 @@ void Application::run() {
         ImGui_ImplSDL3_NewFrame();
         ImGui::NewFrame();
 
-        const core::InputState scene_input = (m_updater.status() == Updater::Status::Checking)
-                                            ? core::InputState{}
-                                            : m_input;
+        const auto updater_status = m_updater.status();
+        const bool block_input = (updater_status == Updater::Status::Checking ||
+                                  updater_status == Updater::Status::UpdateAvailable);
+        const core::InputState scene_input = block_input ? core::InputState{} : m_input;
         const std::string next = m_scene_manager->update(scene_input, dt);
         if (next == Transition::Quit) {
             m_window.set_should_close(true);
