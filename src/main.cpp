@@ -1,6 +1,8 @@
 #include "core/Application.hpp"
 #include "core/Logger.hpp"
 
+#include <SDL3/SDL_main.h>
+
 int main() {
 
     if (!core::Application::init()) return 1;
