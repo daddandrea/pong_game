@@ -110,6 +110,8 @@ Application::Application() : m_window("Pong", WIN_W, WIN_H) {
 
     m_scene_manager->push(Transition::MainMenu);
 
+    m_updater.check_async();
+
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
@@ -163,6 +165,19 @@ void Application::run() {
         glClear(GL_COLOR_BUFFER_BIT);
 
         m_scene_manager->render(*m_renderer);
+
+        if (m_updater.status() == Updater::Status::UpdateAvailable) {
+            ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Always, { 0.5f, 0.5f });
+            ImGui::Begin("Update Available", nullptr,
+                ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+                ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize);
+            ImGui::Text("Version %s is available. Update now?", m_updater.latest_version().c_str());
+            ImGui::Spacing();
+            if (ImGui::Button("Yes")) m_updater.download_and_install();
+            ImGui::SameLine();
+            if (ImGui::Button("Later"))  m_updater.dismiss();
+            ImGui::End();
+        }
 
         game::GameState* state = m_scene_manager->find_game_state();
         scenes::render_dev_menu(state, game::g_settings);

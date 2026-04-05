@@ -2,6 +2,7 @@
 
 #include "core/AudioManager.hpp"
 #include "core/InputState.hpp"
+#include "core/Updater.hpp"
 #include "core/Window.hpp"
 #include "scenes/SceneManager.hpp"
 
@@ -37,6 +38,7 @@ private:
     std::string m_font_path;
 
     AudioManager m_audio;
+    Updater      m_updater;
     std::unique_ptr<scenes::SceneManager> m_scene_manager;
     std::unique_ptr<renderer::Renderer2D> m_renderer;
 };
