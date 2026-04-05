@@ -93,6 +93,7 @@ static std::string find_font() {
 #endif
 
 Application::Application() : m_window("Pong", WIN_W, WIN_H) {
+    Log::init(PONG_VERSION);
     Log::info("Pong v{}", PONG_VERSION);
 
     m_renderer = std::make_unique<renderer::Renderer2D>();

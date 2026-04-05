@@ -96,6 +96,7 @@ add_executable(Pong
     src/main.cpp
     src/core/Window.cpp
     src/core/Application.cpp
+    src/core/Logger.cpp
     src/renderer/Shader.cpp
     src/renderer/Buffer.cpp
     src/renderer/TextRenderer.cpp
@@ -118,6 +119,10 @@ add_executable(Pong
 if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
     target_compile_definitions(Pong PRIVATE PONG_DEV)
     target_sources(Pong PRIVATE src/scenes/DevMenu.cpp)
+endif()
+
+if(WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Release")
+    set_target_properties(Pong PROPERTIES WIN32_EXECUTABLE TRUE)
 endif()
 
 target_compile_definitions(Pong PRIVATE
