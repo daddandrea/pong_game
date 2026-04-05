@@ -155,6 +155,7 @@ static httplib::Result fetch_with_redirect(const std::string& url) {
             httplib::Client rcli(rhost);
             rcli.set_connection_timeout(10);
             rcli.set_read_timeout(60);
+            rcli.set_url_encode(false);
             auto rres = rcli.Get(rpath, {
                 { "User-Agent", "pong-updater" },
                 { "Accept",     "*/*"           }
