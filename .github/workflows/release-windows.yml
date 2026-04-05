@@ -61,11 +61,11 @@ jobs:
           Copy-Item build\${{ matrix.build_type }}\Pong.exe dist\pong-windows-x86_64${{ matrix.suffix }}\
           Copy-Item -Recurse assets dist\pong-windows-x86_64${{ matrix.suffix }}\assets
           Get-ChildItem build\${{ matrix.build_type }}\*.dll | Copy-Item -Destination dist\pong-windows-x86_64${{ matrix.suffix }}\
-          Compress-Archive -Path dist\pong-windows-x86_64${{ matrix.suffix }} -DestinationPath pong-windows-x86_64${{ matrix.suffix }}.zip
+          Compress-Archive -Path dist\pong-windows-x86_64${{ matrix.suffix }} -DestinationPath pong-windows-x86_64${{ matrix.suffix }}-${{ steps.tag.outputs.value }}.zip
 
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.value }}
-          files: pong-windows-x86_64${{ matrix.suffix }}.zip
+          files: pong-windows-x86_64${{ matrix.suffix }}-${{ steps.tag.outputs.value }}.zip
           generate_release_notes: true

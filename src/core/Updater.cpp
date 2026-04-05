@@ -38,12 +38,18 @@ static const std::string GITHUB_HOST     = "https://github.com";
 static const std::string RELEASE_PATH    = "/repos/" PONG_GITHUB_REPO "/releases/latest";
 
 #ifdef _WIN32
-static const std::string ARCHIVE_NAME = PONG_ARCHIVE_WINDOWS + std::string(".zip");
-static const std::string SCRIPT_NAME  = "update.bat";
+static const std::string SCRIPT_NAME = "update.bat";
 #else
-static const std::string ARCHIVE_NAME = PONG_ARCHIVE_LINUX + std::string(".tar.gz");
-static const std::string SCRIPT_NAME  = "update.sh";
+static const std::string SCRIPT_NAME = "update.sh";
 #endif
+
+static std::string versioned_archive(const std::string& tag) {
+#ifdef _WIN32
+    return std::string(PONG_ARCHIVE_WINDOWS) + "-" + tag + ".zip";
+#else
+    return std::string(PONG_ARCHIVE_LINUX) + "-" + tag + ".tar.gz";
+#endif
+}
 
 /**
  * @brief Extracts the value of a string field from a GitHub API JSON response.
@@ -67,37 +73,28 @@ static std::string parse_string_field(const std::string& json, const std::string
 }
 
 /**
- * @brief Strips a leading 'v' or 'V' from a version string.
+ * @brief Parses an ISO 8601 UTC timestamp string to a Unix timestamp.
  *
- * @param v Version string, e.g. "v1.2.3" or "1.2.3".
- * @return Version string without the leading 'v', e.g. "1.2.3".
+ * Expected format: "2026-04-05T14:32:01Z"
+ *
+ * @param s ISO 8601 string.
+ * @return Unix timestamp (seconds since epoch), or 0 on parse failure.
  */
-static std::string strip_v(const std::string& v) {
-    if (!v.empty() && (v[0] == 'v' || v[0] == 'V'))
-        return v.substr(1);
-    return v;
-}
-
-/**
- * @brief Returns the Nth component (0-indexed) of a "X.Y.Z" version string.
- *
- * e.g. version_part("1.2.3", 1) -> 2
- *
- * @param v     Version string in "X.Y.Z" format.
- * @param part  0 = major, 1 = minor, 2 = patch.
- * @return The numeric value of the requested part, or 0 if missing or invalid.
- */
-static int version_part(const std::string& v, int part) {
-    int i = 0;
-    std::string::size_type pos = 0;
-    while (i < part) {
-        pos = v.find('.', pos);
-        if (pos == std::string::npos) return 0;
-        ++pos;
-        ++i;
-    }
+static int64_t parse_iso8601(const std::string& s) {
+    if (s.size() < 20) return 0;
     try {
-        return std::stoi(v.substr(pos));
+        std::tm tm{};
+        tm.tm_year = std::stoi(s.substr(0,  4)) - 1900;
+        tm.tm_mon  = std::stoi(s.substr(5,  2)) - 1;
+        tm.tm_mday = std::stoi(s.substr(8,  2));
+        tm.tm_hour = std::stoi(s.substr(11, 2));
+        tm.tm_min  = std::stoi(s.substr(14, 2));
+        tm.tm_sec  = std::stoi(s.substr(17, 2));
+#ifdef _WIN32
+        return static_cast<int64_t>(_mkgmtime(&tm));
+#else
+        return static_cast<int64_t>(timegm(&tm));
+#endif
     } catch (...) {
         return 0;
     }
@@ -221,27 +218,6 @@ static void launch_script(
 #endif
 }
 
-/**
- * @brief Returns true if @p remote is strictly newer than @p local.
- *
- * Compares major, minor, and patch in order. Both strings may
- * optionally have a leading 'v'.
- *
- * @param remote Version string from the remote release.
- * @param local  Version string of the running binary.
- * @return true if remote > local, false otherwise.
- */
-static bool is_newer(const std::string& remote, const std::string& local) {
-    const std::string r = strip_v(remote);
-    const std::string l = strip_v(local);
-    for (int i = 0; i < 3; ++i) {
-        int rv = version_part(r, i);
-        int lv = version_part(l, i);
-        if (rv > lv) return true;
-        if (rv < lv) return false;
-    }
-    return false;
-}
 
 Updater::Updater()  = default;
 Updater::~Updater() {
@@ -262,7 +238,28 @@ std::string Updater::latest_version() const {
     return m_latest_version;
 }
 
+static bool has_git_folder() {
+    const char* base = SDL_GetBasePath();
+    if (!base) return false;
+
+    std::filesystem::path dir = base;
+    for (int i = 0; i < 4; ++i) {
+        if (std::filesystem::exists(dir / ".git"))
+            return true;
+        const auto parent = dir.parent_path();
+        if (parent == dir) break;
+        dir = parent;
+    }
+    return false;
+}
+
 void Updater::do_check() {
+    if (has_git_folder()) {
+        Log::info("Updater: .git folder found, skipping update check (use git pull)");
+        m_status = Status::DevBuild;
+        return;
+    }
+
     httplib::Client cli(GITHUB_API_HOST);
     cli.set_follow_location(true);
     cli.set_connection_timeout(5);
@@ -286,31 +283,20 @@ void Updater::do_check() {
         return;
     }
 
-    // find the browser_download_url for the platform-specific archive
-    const std::string url = [&]() -> std::string {
-        const std::string& body = res->body;
-        std::string::size_type pos = 0;
-        while ((pos = body.find(ARCHIVE_NAME, pos)) != std::string::npos) {
-            // search backwards for browser_download_url on the same asset entry
-            auto url_pos = body.rfind("browser_download_url", pos);
-            if (url_pos != std::string::npos)
-                return parse_string_field(body.substr(url_pos), "browser_download_url");
-            ++pos;
-        }
-        return {};
-    }();
-
-    if (url.empty()) {
-        Log::warn("Updater: could not find download URL for {}", ARCHIVE_NAME);
+    const std::string published_at = parse_string_field(res->body, "published_at");
+    const int64_t release_time = parse_iso8601(published_at);
+    if (release_time == 0) {
+        Log::warn("Updater: could not parse published_at");
         m_status = Status::Error;
         return;
     }
 
     m_latest_version = tag;
-    m_download_url   = url;
+    m_download_url   = std::format("https://github.com/{}/releases/download/{}/{}",
+                                   PONG_GITHUB_REPO, tag, versioned_archive(tag));
 
-    if (is_newer(tag, PONG_VERSION)) {
-        Log::info("Updater: update available {} -> {}", PONG_VERSION, tag);
+    if (release_time > static_cast<int64_t>(PONG_BUILD_TIME)) {
+        Log::info("Updater: update available (released {}, built {})", release_time, PONG_BUILD_TIME);
         m_status = Status::UpdateAvailable;
     } else {
         Log::info("Updater: up to date ({})", PONG_VERSION);
@@ -338,9 +324,10 @@ void Updater::do_install() {
         return;
     }
 
-    const std::filesystem::path install_dir = base;
-    const std::filesystem::path archive     = install_dir / ARCHIVE_NAME;
-    const std::filesystem::path script      = install_dir / SCRIPT_NAME;
+    const std::filesystem::path install_dir    = base;
+    const auto                  last_slash     = m_download_url.rfind('/');
+    const std::filesystem::path archive        = install_dir / m_download_url.substr(last_slash + 1);
+    const std::filesystem::path script         = install_dir / SCRIPT_NAME;
 #ifdef _WIN32
     const std::filesystem::path executable  = install_dir / "Pong.exe";
 #else

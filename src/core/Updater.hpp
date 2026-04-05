@@ -8,7 +8,7 @@ namespace core {
 
 class Updater {
 public:
-    enum class Status { Idle, Checking, UpdateAvailable, UpToDate, Dismissed, Downloading, InstallFailed, Error };
+    enum class Status { Idle, Checking, UpdateAvailable, UpToDate, DevBuild, Dismissed, Downloading, InstallFailed, Error };
 
     Updater();
     ~Updater();

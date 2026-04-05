@@ -71,11 +71,11 @@ jobs:
           cp -r assets dist/pong-linux-x86_64${{ matrix.suffix }}/
           ldd build/Pong | awk '/libSDL/{print $3}' | xargs -I{} cp -L {} dist/pong-linux-x86_64${{ matrix.suffix }}/
           patchelf --set-rpath '$ORIGIN' dist/pong-linux-x86_64${{ matrix.suffix }}/Pong
-          tar -czf pong-linux-x86_64${{ matrix.suffix }}.tar.gz -C dist pong-linux-x86_64${{ matrix.suffix }}
+          tar -czf pong-linux-x86_64${{ matrix.suffix }}-${{ steps.tag.outputs.value }}.tar.gz -C dist pong-linux-x86_64${{ matrix.suffix }}
 
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.value }}
-          files: pong-linux-x86_64${{ matrix.suffix }}.tar.gz
+          files: pong-linux-x86_64${{ matrix.suffix }}-${{ steps.tag.outputs.value }}.tar.gz
           generate_release_notes: true
