@@ -33,9 +33,7 @@
 
 namespace core {
 
-static const std::string GITHUB_API_HOST = "https://api.github.com";
-static const std::string GITHUB_HOST     = "https://github.com";
-static const std::string RELEASE_PATH    = "/repos/" PONG_GITHUB_REPO "/releases/latest";
+static const std::string GITHUB_HOST = "https://github.com";
 
 #ifdef _WIN32
 static const std::string SCRIPT_NAME = "update.bat";
@@ -51,53 +49,47 @@ static std::string versioned_archive(const std::string& tag) {
 #endif
 }
 
-/**
- * @brief Extracts the value of a string field from a GitHub API JSON response.
- *
- * Only handles the simple case: "key": "value"
- *
- * @param json Raw JSON string.
- * @param key  The field name to look up (without quotes).
- * @return The field value string, or an empty string if not found.
- */
-static std::string parse_string_field(const std::string& json, const std::string& key) {
-    const std::string quoted_key = "\"" + key + "\"";
-    auto pos = json.find(quoted_key);
-    if (pos == std::string::npos) return {};
-    // skip past the key and colon/space to the opening quote of the value
-    pos = json.find('"', pos + quoted_key.size() + 1);
-    if (pos == std::string::npos) return {};
-    auto end = json.find('"', pos + 1);
-    if (end == std::string::npos) return {};
-    return json.substr(pos + 1, end - pos - 1);
+static int version_part(const std::string& v, int part) {
+    int i = 0;
+    std::string::size_type pos = 0;
+    while (i < part) {
+        pos = v.find('.', pos);
+        if (pos == std::string::npos) return 0;
+        ++pos;
+        ++i;
+    }
+    try { return std::stoi(v.substr(pos)); } catch (...) { return 0; }
 }
 
-/**
- * @brief Parses an ISO 8601 UTC timestamp string to a Unix timestamp.
- *
- * Expected format: "2026-04-05T14:32:01Z"
- *
- * @param s ISO 8601 string.
- * @return Unix timestamp (seconds since epoch), or 0 on parse failure.
- */
-static int64_t parse_iso8601(const std::string& s) {
-    if (s.size() < 20) return 0;
-    try {
-        std::tm tm{};
-        tm.tm_year = std::stoi(s.substr(0,  4)) - 1900;
-        tm.tm_mon  = std::stoi(s.substr(5,  2)) - 1;
-        tm.tm_mday = std::stoi(s.substr(8,  2));
-        tm.tm_hour = std::stoi(s.substr(11, 2));
-        tm.tm_min  = std::stoi(s.substr(14, 2));
-        tm.tm_sec  = std::stoi(s.substr(17, 2));
-#ifdef _WIN32
-        return static_cast<int64_t>(_mkgmtime(&tm));
-#else
-        return static_cast<int64_t>(timegm(&tm));
-#endif
-    } catch (...) {
-        return 0;
+static int trailing_num(const std::string& s) {
+    auto i = s.size();
+    while (i > 0 && std::isdigit(static_cast<unsigned char>(s[i - 1]))) --i;
+    if (i == s.size()) return -1;
+    try { return std::stoi(s.substr(i)); } catch (...) { return -1; }
+}
+
+static bool is_newer(const std::string& remote, const std::string& local) {
+    const auto split = [](const std::string& v) -> std::pair<std::string, std::string> {
+        const auto d = v.find('-');
+        return d == std::string::npos
+            ? std::make_pair(v, std::string{})
+            : std::make_pair(v.substr(0, d), v.substr(d + 1));
+    };
+
+    const auto [rmain, rpre] = split(remote);
+    const auto [lmain, lpre] = split(local);
+
+    for (int i = 0; i < 3; ++i) {
+        const int rv = version_part(rmain, i);
+        const int lv = version_part(lmain, i);
+        if (rv != lv) return rv > lv;
     }
+
+    // same X.Y.Z — compare pre-release suffix
+    if (rpre.empty() && lpre.empty()) return false;
+    if (rpre.empty()) return true;   // stable beats pre-release
+    if (lpre.empty()) return false;  // pre-release loses to stable
+    return trailing_num(rpre) > trailing_num(lpre);
 }
 
 /**
@@ -272,43 +264,42 @@ void Updater::do_check() {
         return;
     }
 
-    httplib::Client cli(GITHUB_API_HOST);
-    cli.set_follow_location(true);
+    httplib::Client cli(GITHUB_HOST);
+    cli.set_follow_location(false);
     cli.set_connection_timeout(5);
     cli.set_read_timeout(5);
 
-    auto res = cli.Get(RELEASE_PATH, {
-        { "User-Agent", "pong-updater" },
-        { "Accept",     "application/vnd.github+json" }
-    });
+    const std::string path = "/" PONG_GITHUB_REPO "/releases/latest";
+    auto res = cli.Get(path, {{ "User-Agent", "pong-updater" }});
 
-    if (!res || res->status != 200) {
-        Log::warn("Updater: failed to reach GitHub API");
+    if (!res || res->status < 300 || res->status >= 400) {
+        Log::warn("Updater: failed to check for updates (status {})", res ? res->status : 0);
         m_status = Status::Error;
         return;
     }
 
-    const std::string tag = parse_string_field(res->body, "tag_name");
-    if (tag.empty()) {
-        Log::warn("Updater: could not parse tag_name");
+    const auto it = res->headers.find("location");
+    if (it == res->headers.end()) {
+        Log::warn("Updater: no location header in redirect");
         m_status = Status::Error;
         return;
     }
 
-    const std::string published_at = parse_string_field(res->body, "published_at");
-    const int64_t release_time = parse_iso8601(published_at);
-    if (release_time == 0) {
-        Log::warn("Updater: could not parse published_at");
+    const std::string& location = it->second;
+    const auto slash = location.rfind('/');
+    if (slash == std::string::npos) {
+        Log::warn("Updater: could not parse tag from location: {}", location);
         m_status = Status::Error;
         return;
     }
 
+    const std::string tag = location.substr(slash + 1);
     m_latest_version = tag;
     m_download_url   = std::format("https://github.com/{}/releases/download/{}/{}",
                                    PONG_GITHUB_REPO, tag, versioned_archive(tag));
 
-    if (release_time > static_cast<int64_t>(PONG_BUILD_TIME)) {
-        Log::info("Updater: update available (released {}, built {})", release_time, PONG_BUILD_TIME);
+    if (is_newer(tag, PONG_VERSION)) {
+        Log::info("Updater: update available {} -> {}", PONG_VERSION, tag);
         m_status = Status::UpdateAvailable;
     } else {
         Log::info("Updater: up to date ({})", PONG_VERSION);

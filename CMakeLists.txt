@@ -125,11 +125,8 @@ if(WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Release")
     set_target_properties(Pong PROPERTIES WIN32_EXECUTABLE TRUE)
 endif()
 
-string(TIMESTAMP PONG_BUILD_TIME "%s" UTC)
-
 target_compile_definitions(Pong PRIVATE
     PONG_VERSION="${GIT_TAG}"
-    PONG_BUILD_TIME=${PONG_BUILD_TIME}
     PONG_GITHUB_REPO="daddandrea/pong_game"
     PONG_ARCHIVE_LINUX="pong-linux-x86_64"
     PONG_ARCHIVE_WINDOWS="pong-windows-x86_64"
