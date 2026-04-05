@@ -137,22 +137,33 @@ static httplib::Result fetch_with_redirect(const std::string& url) {
     cli.set_read_timeout(60);
 
     auto res = cli.Get(path, {{ "User-Agent", "pong-updater" }});
-    if (!res) return res;
+    if (!res) {
+        Log::warn("Updater: initial request failed (no response)");
+        return res;
+    }
+
+    Log::info("Updater: initial response status {}", res->status);
 
     // follow one redirect if we get a 3xx with a Location header
     if (res->status >= 300 && res->status < 400) {
         const auto it = res->headers.find("Location");
         if (it != res->headers.end()) {
+            Log::info("Updater: redirecting to {}", it->second);
             std::string rhost, rpath;
             parse_url(it->second, rhost, rpath);
 
             httplib::Client rcli(rhost);
             rcli.set_connection_timeout(10);
             rcli.set_read_timeout(60);
-            return rcli.Get(rpath, {
+            auto rres = rcli.Get(rpath, {
                 { "User-Agent", "pong-updater" },
                 { "Accept",     "*/*"           }
             });
+            if (rres) Log::info("Updater: redirect response status {}", rres->status);
+            else      Log::warn("Updater: redirect request failed (no response)");
+            return rres;
+        } else {
+            Log::warn("Updater: got {} but no Location header", res->status);
         }
     }
 
