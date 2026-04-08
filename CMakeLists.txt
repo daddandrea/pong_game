@@ -73,7 +73,12 @@ FetchContent_Declare(
     GIT_TAG        v0.18.5
 )
 set(HTTPLIB_USE_WINHTTP_IF_AVAILABLE ON CACHE BOOL "" FORCE)
-set(HTTPLIB_REQUIRE_OPENSSL ON CACHE BOOL "" FORCE)
+
+# set(HTTPLIB_REQUIRE_OPENSSL ON CACHE BOOL "" FORCE)
+if(NOT WIN32)
+    set(HTTPLIB_REQUIRE_OPENSSL ON CACHE BOOL "" FORCE)
+endif()
+
 FetchContent_MakeAvailable(httplib)
 
 find_package(OpenGL REQUIRED)
