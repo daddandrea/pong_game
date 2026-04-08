@@ -26,14 +26,14 @@ Window::Window(const std::string& title, int width, int height) : m_width(width)
     m_window = SDL_CreateWindow(title.c_str(), width, height, SDL_WINDOW_OPENGL | SDL_WINDOW_HIGH_PIXEL_DENSITY);
     if (!m_window) {
         SDL_Quit();
-        throw new std::runtime_error(std::string("SDL_CreateWindow failed: ") + SDL_GetError());
+        throw std::runtime_error(std::string("SDL_CreateWindow failed: ") + SDL_GetError());
     }
 
     SDL_GLContext context = SDL_GL_CreateContext(m_window);
     if (!context) {
         SDL_DestroyWindow(m_window);
         SDL_Quit();
-        throw new std::runtime_error(std::string("SDL_GL_CreateContext failed: ") + SDL_GetError());
+        throw std::runtime_error(std::string("SDL_GL_CreateContext failed: ") + SDL_GetError());
     }
     m_context = context;
 
