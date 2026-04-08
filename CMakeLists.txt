@@ -85,6 +85,11 @@ endif()
 
 FetchContent_MakeAvailable(httplib)
 
+if(WIN32)
+    target_compile_definitions(httplib INTERFACE CPPHTTPLIB_USE_WINHTTP)
+    target_link_libraries(httplib INTERFACE winhttp)
+endif()
+
 find_package(OpenGL REQUIRED)
 
 add_library(imgui STATIC
