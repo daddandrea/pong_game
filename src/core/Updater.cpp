@@ -258,6 +258,7 @@ static bool has_git_folder() {
 }
 
 void Updater::do_check() {
+try {
     if (has_git_folder()) {
         Log::info("Updater: .git folder found, skipping update check (use git pull)");
         m_status = Status::DevBuild;
@@ -305,6 +306,13 @@ void Updater::do_check() {
         Log::info("Updater: up to date ({})", PONG_VERSION);
         m_status = Status::UpToDate;
     }
+} catch (const std::exception& e) {
+    Log::error("Updater: do_check exception: {}", e.what());
+    m_status = Status::Error;
+} catch (...) {
+    Log::error("Updater: do_check unknown exception");
+    m_status = Status::Error;
+}
 }
 
 void Updater::dismiss() {
@@ -318,6 +326,7 @@ void Updater::download_and_install() {
 }
 
 void Updater::do_install() {
+try {
     m_status = Status::Downloading;
 
     const char* base = SDL_GetBasePath();
@@ -359,6 +368,13 @@ void Updater::do_install() {
     SDL_Event quit;
     quit.type = SDL_EVENT_QUIT;
     SDL_PushEvent(&quit);
+} catch (const std::exception& e) {
+    Log::error("Updater: do_install exception: {}", e.what());
+    m_status = Status::InstallFailed;
+} catch (...) {
+    Log::error("Updater: do_install unknown exception");
+    m_status = Status::InstallFailed;
+}
 }
 
 } // namespace core
