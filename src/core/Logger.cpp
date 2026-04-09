@@ -39,7 +39,7 @@ std::string current_datetime() {
 
 } // namespace
 
-void init(std::string_view version) {
+void init(std::string_view version, std::string_view build_mode) {
     const char* base = SDL_GetBasePath();
     if (!base) return;
 
@@ -56,6 +56,7 @@ void init(std::string_view version) {
     if (!g_log_file.is_open()) return;
 
     g_log_file << std::format("Pong v{}\n", version);
+    g_log_file << std::format("Build: {}\n", build_mode);
     g_log_file << std::format("Session started: {}\n", current_datetime());
     g_log_file << std::string(60, '-') << '\n';
     g_log_file.flush();

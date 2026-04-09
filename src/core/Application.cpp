@@ -92,8 +92,13 @@ static std::string find_font() {
 #define PONG_VERSION "0.0.0"
 #endif
 
+#ifdef PONG_DEV
+static constexpr std::string_view BUILD_MODE = "Debug";
+#else
+static constexpr std::string_view BUILD_MODE = "Release";
+#endif
+
 Application::Application() : m_window("Pong", WIN_W, WIN_H) {
-    Log::init(PONG_VERSION);
     Log::info("Pong v{}", PONG_VERSION);
 
     m_renderer = std::make_unique<renderer::Renderer2D>();
@@ -126,6 +131,11 @@ Application::Application() : m_window("Pong", WIN_W, WIN_H) {
 }
 
 bool Application::init() {
+    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
+        Log::error("SDL_Init failed: {}", SDL_GetError());
+        return false;
+    }
+    Log::init(PONG_VERSION, BUILD_MODE);
     if (!TTF_Init()) {
         Log::error("TTF_Init failed: {}\n", SDL_GetError());
         return false;
@@ -314,6 +324,6 @@ void Application::dismiss_overlay_if_game_over() {
         m_scene_manager->pop();
 }
 
-void Application::quit() { TTF_Quit(); }
+void Application::quit() { TTF_Quit(); SDL_Quit(); }
 
 } // namespace core

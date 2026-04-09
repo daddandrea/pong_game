@@ -6,7 +6,7 @@
 
 namespace Log {
 
-void init(std::string_view version);
+void init(std::string_view version, std::string_view build_mode);
 
 namespace detail {
     void print_info(std::string_view msg, const std::source_location& loc);
