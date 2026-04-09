@@ -13,6 +13,7 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#include "WinHttpFetch.hpp"
 #else
 #include <fcntl.h>
 #include <unistd.h>
@@ -265,12 +266,21 @@ try {
         return;
     }
 
+    const std::string path = "/" PONG_GITHUB_REPO "/releases/latest";
+
+#ifdef _WIN32
+    const std::string location = winhttp_get_redirect_location(path);
+    if (location.empty()) {
+        Log::warn("Updater: failed to check for updates");
+        m_status = Status::Error;
+        return;
+    }
+#else
     httplib::Client cli(GITHUB_HOST);
     cli.set_follow_location(false);
     cli.set_connection_timeout(5);
     cli.set_read_timeout(5);
 
-    const std::string path = "/" PONG_GITHUB_REPO "/releases/latest";
     auto res = cli.Get(path, {{ "User-Agent", "pong-updater" }});
 
     if (!res || res->status < 300 || res->status >= 400) {
@@ -287,6 +297,7 @@ try {
     }
 
     const std::string& location = it->second;
+#endif
     const auto slash = location.rfind('/');
     if (slash == std::string::npos) {
         Log::warn("Updater: could not parse tag from location: {}", location);
@@ -348,6 +359,18 @@ try {
 
     Log::info("Updater: downloading {}", m_download_url);
 
+#ifdef _WIN32
+    auto bytes = winhttp_download(m_download_url);
+    if (bytes.empty()) {
+        Log::error("Updater: download failed");
+        m_status = Status::InstallFailed;
+        return;
+    }
+    {
+        std::ofstream f(archive, std::ios::binary);
+        f.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
+    }
+#else
     auto res = fetch_with_redirect(m_download_url);
 
     if (!res || res->status != 200) {
@@ -360,6 +383,7 @@ try {
         std::ofstream f(archive, std::ios::binary);
         f.write(res->body.data(), static_cast<std::streamsize>(res->body.size()));
     }
+#endif
 
     Log::info("Updater: saved archive to {}", archive.string());
 

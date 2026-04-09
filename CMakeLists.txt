@@ -85,11 +85,6 @@ endif()
 
 FetchContent_MakeAvailable(httplib)
 
-if(WIN32)
-    target_compile_definitions(httplib INTERFACE CPPHTTPLIB_USE_WINHTTP)
-    target_link_libraries(httplib INTERFACE winhttp)
-endif()
-
 find_package(OpenGL REQUIRED)
 
 add_library(imgui STATIC
@@ -133,6 +128,11 @@ add_executable(Pong
 if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
     target_compile_definitions(Pong PRIVATE PONG_DEV)
     target_sources(Pong PRIVATE src/scenes/DevMenu.cpp)
+endif()
+
+if(WIN32)
+    target_sources(Pong PRIVATE src/core/WinHttpFetch.cpp)
+    target_link_libraries(Pong PRIVATE winhttp)
 endif()
 
 if(WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Release")
