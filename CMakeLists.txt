@@ -17,6 +17,10 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+if(MSVC)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
+endif()
+
 include(FetchContent)
 
 FetchContent_Declare(
@@ -124,6 +128,11 @@ add_executable(Pong
 if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
     target_compile_definitions(Pong PRIVATE PONG_DEV)
     target_sources(Pong PRIVATE src/scenes/DevMenu.cpp)
+endif()
+
+if(WIN32)
+    target_sources(Pong PRIVATE src/core/WinHttpFetch.cpp)
+    target_link_libraries(Pong PRIVATE winhttp)
 endif()
 
 if(WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Release")
