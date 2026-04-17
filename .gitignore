@@ -32,3 +32,5 @@ Makefile
 # Misc
 TODO.md
 imgui.ini
+.env*
+.vaultsync-project
