@@ -4,29 +4,34 @@ set -e
 COMMAND=$1
 FLAG=$2
 
+readonly debug_flag = "--debug"
+readonly release_flag = "--release"
+
 usage() {
-    echo "Usage: ./dev.sh <command> [--debug|--release]"
+    echo "Usage: ./dev.sh <command> [$debug_flag|$release_flag]"
     echo ""
     echo "  Commands:"
-    echo "    build --debug      Debug build with PONG_DEV=ON  →  build/debug/"
-    echo "    build --release    Release build                 →  build/release/"
-    echo "    run   --debug      Run debug binary (build first if needed)"
-    echo "    run   --release    Run release binary (build first if needed)"
+    echo "    build $debug_flag      Debug build with PONG_DEV=ON  →  build/debug/"
+    echo "    build $release_flag    Release build                 →  build/release/"
+    echo "    run   $debug_flag      Run debug binary (build first if needed)"
+    echo "    run   $release_flag    Run release binary (build first if needed)"
     echo "    clean              Delete all of build/ and the symlink"
-    echo "    clean --debug      Delete only build/debug/"
-    echo "    clean --release    Delete only build/release/"
+    echo "    clean $debug_flag      Delete only build/debug/"
+    echo "    clean $release_flag    Delete only build/release/"
     echo ""
     echo "  Other:"
     echo "    -h                 Show this help"
+    return 0
 }
 
 require_build_flag() {
-    if [[ "$FLAG" != "--debug" && "$FLAG" != "--release" ]]; then
-        echo "Error: '$COMMAND' requires --debug or --release"
+    if [[ "$FLAG" != $debug_flag && "$FLAG" != $release_flag ]]; then
+        echo "Error: '$COMMAND' requires $debug_flag or $release_flag" >&2
         echo ""
         usage
         exit 1
     fi
+    return 0
 }
 
 case $COMMAND in
@@ -38,7 +43,7 @@ case $COMMAND in
     build)
         require_build_flag
 
-        if [[ "$FLAG" == "--debug" ]]; then
+        if [[ "$FLAG" == "${debug_flag}" ]]; then
             BUILD_TYPE=Debug; PONG_DEV=ON
         else
             BUILD_TYPE=Release; PONG_DEV=OFF
@@ -54,7 +59,7 @@ case $COMMAND in
     run)
         require_build_flag
 
-        if [[ "$FLAG" == "--debug" ]]; then
+        if [[ "$FLAG" == "${debug_flag}" ]]; then
             BUILD_TYPE=Debug; PONG_DEV=ON
         else
             BUILD_TYPE=Release; PONG_DEV=OFF
@@ -76,16 +81,16 @@ case $COMMAND in
             rm -rf build
             rm -f compile_commands.json
             echo "Cleaned all"
-        elif [[ "$FLAG" == "--debug" ]]; then
+        elif [[ "$FLAG" == "${debug_flag}" ]]; then
             rm -rf build/debug
             [[ -L compile_commands.json && "$(readlink compile_commands.json)" == "build/debug/compile_commands.json" ]] && rm -f compile_commands.json
             echo "Cleaned build/debug"
-        elif [[ "$FLAG" == "--release" ]]; then
+        elif [[ "$FLAG" == "${release_flag}" ]]; then
             rm -rf build/release
             [[ -L compile_commands.json && "$(readlink compile_commands.json)" == "build/release/compile_commands.json" ]] && rm -f compile_commands.json
             echo "Cleaned build/release"
         else
-            echo "Error: unknown flag '$FLAG'"
+            echo "Error: unknown flag '$FLAG'" >&2
             echo ""
             usage
             exit 1
