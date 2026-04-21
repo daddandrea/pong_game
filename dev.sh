@@ -4,8 +4,8 @@ set -e
 COMMAND=$1
 FLAG=$2
 
-readonly debug_flag = "--debug"
-readonly release_flag = "--release"
+readonly debug_flag="--debug"
+readonly release_flag="--release"
 
 usage() {
     echo "Usage: ./dev.sh <command> [$debug_flag|$release_flag]"
