@@ -6,6 +6,7 @@
 #include <ctime>
 #include <filesystem>
 #include <fstream>
+#include <time.h>
 
 #ifdef PONG_DEV
 #include <iostream>
@@ -17,24 +18,34 @@ namespace {
 
 std::ofstream g_log_file;
 
+struct tm get_current_localtime() {
+    auto now = std::chrono::system_clock::to_time_t(
+        std::chrono::system_clock::now()
+    );
+
+    struct tm local_time;
+
+    localtime_r(&now, &local_time);
+
+    return local_time;
+}
+
 std::string current_timestamp() {
-    using namespace std::chrono;
-    auto now   = system_clock::now();
-    auto ms    = duration_cast<milliseconds>(now.time_since_epoch()) % 1000;
-    std::time_t t  = system_clock::to_time_t(now);
-    std::tm*   tm  = std::localtime(&t);
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch()
+              ) % 1000;
+
+    struct tm lt = get_current_localtime();
+
     return std::format("{:02}:{:02}:{:02}.{:03}",
-                       tm->tm_hour, tm->tm_min, tm->tm_sec, ms.count());
+                       lt.tm_hour, lt.tm_min, lt.tm_sec, ms.count());
 }
 
 std::string current_datetime() {
-    using namespace std::chrono;
-    auto now  = system_clock::now();
-    std::time_t t = system_clock::to_time_t(now);
-    std::tm*  tm  = std::localtime(&t);
-    return std::format("{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
-                       tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
-                       tm->tm_hour, tm->tm_min, tm->tm_sec);
+    struct tm lt = get_current_localtime();
+
+    return std::format("{:04}-{:02}-{:02} {}",
+                       lt.tm_year + 1900, lt.tm_mon + 1, lt.tm_mday, current_timestamp());
 }
 
 } // namespace
