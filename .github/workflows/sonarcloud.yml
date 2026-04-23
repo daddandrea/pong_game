@@ -1,0 +1,54 @@
+name: SonarCloud
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  sonarcloud:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake build-essential libgl1-mesa-dev \
+            libwayland-dev libx11-dev libxkbcommon-dev \
+            libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev \
+            libasound2-dev libpulse-dev libdbus-1-dev \
+            libfreetype-dev libharfbuzz-dev
+
+      - name: Download build-wrapper
+        run: |
+          curl -sSLo build-wrapper-linux-x86.zip \
+            https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip
+          unzip build-wrapper-linux-x86.zip
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DPONG_DEV=ON
+
+      - name: Build with build-wrapper
+        run: |
+          ./build-wrapper-linux-x86/build-wrapper-linux-x86-64 \
+            --out-dir build-wrapper-output \
+            cmake --build build --parallel
+
+      - name: Get version
+        id: version
+        run: echo "value=$(git describe --tags --abbrev=0 2>/dev/null || echo 'unknown')" >> $GITHUB_OUTPUT
+
+      - name: Run sonar-scanner
+        uses: SonarSource/sonarcloud-github-action@master
+        with:
+          args: -Dsonar.projectVersion=${{ steps.version.outputs.value }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
