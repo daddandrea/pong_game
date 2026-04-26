@@ -1,6 +1,6 @@
 #include "WinHttpFetch.hpp"
-#include "Logger.hpp"
 
+#include <array>
 #include <windows.h>
 #include <winhttp.h>
 
@@ -50,7 +50,7 @@ std::string winhttp_get_redirect_location(const std::string& path) {
 
 std::vector<char> winhttp_download(const std::string& url) {
     const std::string prefix = "https://";
-    const auto host_start = url.substr(0, prefix.size()) == prefix ? prefix.size() : 0;
+    const auto host_start = url.starts_with(prefix) ? prefix.size() : 0;
     const auto path_start = url.find('/', host_start);
     const std::string host_str = url.substr(host_start, path_start - host_start);
     const std::string path_str = url.substr(path_start);
@@ -80,9 +80,11 @@ std::vector<char> winhttp_download(const std::string& url) {
 
     std::vector<char> body;
     DWORD bytesRead = 0;
-    char buf[8192];
-    while (WinHttpReadData(hRequest, buf, sizeof(buf), &bytesRead) && bytesRead > 0)
-        body.insert(body.end(), buf, buf + bytesRead);
+
+    std::array<char, 8192> buf;
+    while (WinHttpReadData(hRequest, buf.data(), buf.size(), &bytesRead) && bytesRead > 0) {
+        body.insert(body.end(), buf.begin(), buf.begin() + bytesRead);
+    }
 
     WinHttpCloseHandle(hRequest);
     WinHttpCloseHandle(hConnect);
