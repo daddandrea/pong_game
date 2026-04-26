@@ -2,6 +2,7 @@
 
 #include <SDL3/SDL_audio.h>
 #include <string>
+#include <vector>
 
 namespace core {
 
@@ -36,17 +37,17 @@ private:
 
     static AudioManager* s_instance;
     static void music_callback(void* userdata, SDL_AudioStream* stream, int additional_amount, int total_amount);
-    void refill_music(SDL_AudioStream* stream, int additional_amount);
+    void refill_music(SDL_AudioStream* stream, int additional_amount) const;
 
-    SDL_AudioDeviceID m_device            = 0;
-    Clip              m_clips[static_cast<int>(Sound::Count)];
+    SDL_AudioDeviceID                                    m_device            = 0;
+    std::vector<Clip>                                    m_clips             = std::vector<Clip>(static_cast<size_t>(Sound::Count));
 
-    SDL_AudioStream*  m_music_stream      = nullptr;
-    short*            m_music_buf         = nullptr;
-    int               m_music_samples     = 0;
-    int               m_music_channels    = 0;
-    int               m_music_sample_rate = 0;
-    float             m_music_volume      = 1.0f;
+    SDL_AudioStream*                                     m_music_stream      = nullptr;
+    short*                                               m_music_buf         = nullptr;
+    int                                                  m_music_samples     = 0;
+    int                                                  m_music_channels    = 0;
+    int                                                  m_music_sample_rate = 0;
+    float                                                m_music_volume      = 1.0f;
 
 };
 
