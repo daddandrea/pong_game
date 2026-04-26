@@ -1,12 +1,11 @@
 #include "AudioManager.hpp"
 #include "Logger.hpp"
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_audio.h>
 
 extern "C" {
     int stb_vorbis_decode_filename(const char* filename, int* channels, int* sample_rate, short** output);
 }
-
-#include <SDL3/SDL.h>
-#include <SDL3/SDL_audio.h>
 
 namespace core {
 
@@ -17,6 +16,8 @@ AudioManager& AudioManager::get() {
 }
 
 AudioManager::AudioManager() {
+    using enum core::AudioManager::Sound;
+
     s_instance = this;
     m_device = SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, nullptr);
     if (!m_device) {
@@ -45,7 +46,7 @@ AudioManager::~AudioManager() {
 }
 
 void AudioManager::load(Sound sound, const std::string& path) {
-    auto& clip = m_clips[static_cast<int>(sound)];
+    auto& clip = m_clips.at(static_cast<int>(sound));
 
     if (!SDL_LoadWAV(path.c_str(), &clip.spec, &clip.buf, &clip.len)) {
         Log::error("SDL_LoadWAV failed ({}): {}", path, SDL_GetError());
@@ -133,7 +134,7 @@ void AudioManager::music_callback(void* userdata, SDL_AudioStream* stream, int a
     static_cast<AudioManager*>(userdata)->refill_music(stream, additional_amount);
 }
 
-void AudioManager::refill_music(SDL_AudioStream* stream, int additional_amount) {
+void AudioManager::refill_music(SDL_AudioStream* stream, int additional_amount) const {
     if (!m_music_buf || m_music_samples <= 0) return;
 
     const int bytes_per_sample = sizeof(short) * m_music_channels;

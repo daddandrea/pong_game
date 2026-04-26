@@ -1,5 +1,6 @@
 #pragma once
 
+#include <SDL3/SDL_video.h>
 #include <string>
 
 struct SDL_Window;
@@ -22,11 +23,11 @@ public:
     void set_should_close(bool v) { m_should_close = v; }
 
     SDL_Window* get_sdl_window() { return m_window; }
-    void* get_gl_context() { return m_context; }
+    SDL_GLContext get_gl_context() { return m_context; }
 
 private:
     SDL_Window* m_window = nullptr;
-    void* m_context = nullptr;
+    SDL_GLContext m_context = nullptr;
     int m_width = 0;
     int m_height = 0;
     bool m_should_close = false;

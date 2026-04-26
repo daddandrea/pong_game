@@ -5,6 +5,7 @@
 #include <SDL3/SDL_error.h>
 #include <SDL3/SDL_init.h>
 #include <SDL3/SDL_video.h>
+#include <bit>
 
 #include <stdexcept>
 #include <string>
@@ -40,14 +41,15 @@ Window::Window(const std::string& title, int width, int height) : m_width(width)
     SDL_GL_MakeCurrent(m_window, context);
     SDL_GL_SetSwapInterval(1);
 
-    if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(SDL_GL_GetProcAddress))) {
+    if (!gladLoadGLLoader(std::bit_cast<GLADloadproc>(&SDL_GL_GetProcAddress))) {
         SDL_GL_DestroyContext(context);
         SDL_DestroyWindow(m_window);
         SDL_Quit();
         throw std::runtime_error("gladLoadGLLoader failed");
     }
 
-    int fb_w, fb_h;
+    int fb_w;
+    int fb_h;
     SDL_GetWindowSizeInPixels(m_window, &fb_w, &fb_h);
     glViewport(0, 0, fb_w, fb_h);
 
@@ -58,8 +60,9 @@ Window::Window(const std::string& title, int width, int height) : m_width(width)
 }
 
 Window::~Window() {
-    if (m_context) SDL_GL_DestroyContext(reinterpret_cast<SDL_GLContext>(m_context));
+    if (m_context) SDL_GL_DestroyContext(m_context);
     if (m_window) SDL_DestroyWindow(m_window);
+
     SDL_Quit();
 }
 

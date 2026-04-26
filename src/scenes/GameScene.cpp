@@ -1,6 +1,7 @@
 #include "GameScene.hpp"
 #include "core/AudioManager.hpp"
 #include "core/InputState.hpp"
+#include <random>
 #ifdef PONG_DEV
 #include "game/DevSettings.hpp"
 #endif
@@ -11,12 +12,14 @@
 #include "renderer/Renderer2D.hpp"
 #include "scenes/Colors.hpp"
 #include "scenes/IScene.hpp"
-#include <cstdlib>
 #include <string>
 
 namespace scenes {
 
-static bool rand_bool() { return (std::rand() & 1) != 0; }
+static bool rand_bool() {
+    thread_local std::mt19937 gen{std::random_device{}()};
+    return std::bernoulli_distribution{0.5}(gen);
+}
 
 GameScene::GameScene()
 : m_left_paddle(game::PaddleSide::Left),

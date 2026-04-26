@@ -1,4 +1,5 @@
 #include "Application.hpp"
+#include "core/Exceptions.hpp"
 #include "core/Logger.hpp"
 #include "game/GameSettings.hpp"
 #include "scenes/CreditsScene.hpp"
@@ -25,7 +26,6 @@
 #include <scenes/SceneManager.hpp>
 
 #include <chrono>
-#include <stdexcept>
 
 namespace core {
 
@@ -54,6 +54,8 @@ static float py_to_world_y(float py, float win_h) {
  * @return -1 if unmapped
  */
 static int sdl_key_to_index(SDL_Keycode key) {
+    using enum core::Key;
+
     switch (key) {
     case SDLK_W:
         return static_cast<int>(Key::W);
@@ -83,9 +85,11 @@ static std::string find_font() {
             return bundled;
     }
 
-    throw std::runtime_error(
-        std::format("{}\n{}", "No usable font found",
-                    "Place LiberationMono-Regular.ttf in assets/fonts/ next to the executable."));
+    throw core::FontNotFoundException(
+        std::format("{}\n{}",
+                    "No usable font found",
+                    "Place LiberationMono-Regular.ttf in assets/fonts/ next to the executable.")
+    );
 }
 
 #ifndef PONG_VERSION
@@ -105,7 +109,10 @@ Application::Application() : m_window("Pong", WIN_W, WIN_H) {
 
     m_font_path = find_font();
     Log::info("Loading font: {}", m_font_path);
-    int fb_w, fb_h;
+
+    int fb_w;
+    int fb_h;
+
     SDL_GetWindowSizeInPixels(m_window.get_sdl_window(), &fb_w, &fb_h);
     m_renderer->load_font(m_font_path, 3.0f * static_cast<float>(fb_h) / WORLD_H);
 
@@ -149,6 +156,34 @@ Application::~Application() {
     ImGui::DestroyContext();
 }
 
+static void draw_update_status(Updater& updater) {
+    const auto update_status = updater.status();
+    ImGui::Spacing();
+
+    if (update_status == Updater::Status::Downloading) {
+        ImGui::Text("Downloading version %s...", updater.latest_version().c_str());
+    } else if (update_status == Updater::Status::InstallFailed) {
+        ImGui::TextColored({ 1.f, 0.3f, 0.3f, 1.f }, "Update failed. Please try again later.");
+        ImGui::Spacing();
+        if (ImGui::Button("Close", { 120.f, 0.f })) {
+            updater.dismiss();
+            ImGui::CloseCurrentPopup();
+        }
+    } else {
+        ImGui::Text("Version %s is available. Update now?", updater.latest_version().c_str());
+        ImGui::Spacing();
+        if (ImGui::Button("Yes",   { 120.f, 0.f })) updater.download_and_install();
+        ImGui::SameLine();
+        if (ImGui::Button("Later", { 120.f, 0.f })) {
+            updater.dismiss();
+            ImGui::CloseCurrentPopup();
+        }
+    }
+
+    ImGui::Spacing();
+    ImGui::EndPopup();
+}
+
 void Application::run() {
     using clock = std::chrono::steady_clock;
     auto last_time = clock::now();
@@ -164,7 +199,7 @@ void Application::run() {
         process_events();
 
         if (m_window.should_close())
-            break;
+            return;
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL3_NewFrame();
@@ -174,11 +209,11 @@ void Application::run() {
         const bool block_input = (updater_status == Updater::Status::Checking ||
                                   updater_status == Updater::Status::UpdateAvailable);
         const core::InputState scene_input = block_input ? core::InputState{} : m_input;
-        const std::string next = m_scene_manager->update(scene_input, dt);
-        if (next == Transition::Quit) {
+
+        if (const std::string next = m_scene_manager->update(scene_input, dt); next == Transition::Quit) {
             m_window.set_should_close(true);
             ImGui::EndFrame();
-            break;
+            return;
         }
 
         glClearColor(0.04f, 0.04f, 0.04f, 1.0f);
@@ -186,8 +221,8 @@ void Application::run() {
 
         m_scene_manager->render(*m_renderer);
 
-        const auto update_status = m_updater.status();
-        if (update_status == Updater::Status::UpdateAvailable  ||
+        if (const auto update_status = m_updater.status();
+            update_status == Updater::Status::UpdateAvailable  ||
             update_status == Updater::Status::Downloading      ||
             update_status == Updater::Status::InstallFailed) {
 
@@ -196,34 +231,10 @@ void Application::run() {
 
         ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Always, { 0.5f, 0.5f });
         ImGui::SetNextWindowSize({ 480.f, 0.f }, ImGuiCond_Always);
+
         if (ImGui::BeginPopupModal("Update Available", nullptr,
                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse)) {
-
-            const auto update_status = m_updater.status();
-            ImGui::Spacing();
-
-            if (update_status == Updater::Status::Downloading) {
-                ImGui::Text("Downloading version %s...", m_updater.latest_version().c_str());
-            } else if (update_status == Updater::Status::InstallFailed) {
-                ImGui::TextColored({ 1.f, 0.3f, 0.3f, 1.f }, "Update failed. Please try again later.");
-                ImGui::Spacing();
-                if (ImGui::Button("Close", { 120.f, 0.f })) {
-                    m_updater.dismiss();
-                    ImGui::CloseCurrentPopup();
-                }
-            } else {
-                ImGui::Text("Version %s is available. Update now?", m_updater.latest_version().c_str());
-                ImGui::Spacing();
-                if (ImGui::Button("Yes",   { 120.f, 0.f })) m_updater.download_and_install();
-                ImGui::SameLine();
-                if (ImGui::Button("Later", { 120.f, 0.f })) {
-                    m_updater.dismiss();
-                    ImGui::CloseCurrentPopup();
-                }
-            }
-
-            ImGui::Spacing();
-            ImGui::EndPopup();
+            draw_update_status(m_updater);
         }
 
         game::GameState* state = m_scene_manager->find_game_state();
@@ -245,8 +256,8 @@ void Application::clear_frame_state() {
 }
 
 void Application::process_events() {
-    const float win_w = static_cast<float>(m_window.get_width());
-    const float win_h = static_cast<float>(m_window.get_height());
+    const auto win_w = static_cast<float>(m_window.get_width());
+    const auto win_h = static_cast<float>(m_window.get_height());
 
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
@@ -265,8 +276,7 @@ void Application::process_events() {
             }
 
             case SDL_EVENT_KEY_DOWN: {
-                const int idx = sdl_key_to_index(event.key.key);
-                if (idx != -1) {
+                if (const int idx = sdl_key_to_index(event.key.key); idx != -1) {
                     m_input.held[idx] = true;
                     m_input.pressed[idx] = true;
                     m_input.released[idx] = false;
@@ -275,8 +285,7 @@ void Application::process_events() {
             }
 
             case SDL_EVENT_KEY_UP: {
-                const int idx = sdl_key_to_index(event.key.key);
-                if (idx != -1) {
+                if (const int idx = sdl_key_to_index(event.key.key); idx != -1) {
                     m_input.held[idx] = false;
                     m_input.pressed[idx] = false;
                     m_input.released[idx] = true;
@@ -318,7 +327,7 @@ void Application::process_events() {
 }
 
 void Application::dismiss_overlay_if_game_over() {
-    game::GameState* state = m_scene_manager->find_game_state();
+    const game::GameState* state = m_scene_manager->find_game_state();
     if (state && state->phase == game::GamePhase::GameOver
         && m_scene_manager->top()->get_game_state() == nullptr)
         m_scene_manager->pop();

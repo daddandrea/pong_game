@@ -50,7 +50,7 @@ static std::string versioned_archive(const std::string& tag) {
 #endif
 }
 
-static int version_part(const std::string& v, int part) {
+static int version_part(std::string_view v, int part) {
     int i = 0;
     std::string::size_type pos = 0;
     while (i < part) {
@@ -59,18 +59,26 @@ static int version_part(const std::string& v, int part) {
         ++pos;
         ++i;
     }
-    try { return std::stoi(v.substr(pos)); } catch (...) { return 0; }
+    try {
+        return std::stoi(static_cast<std::string>(v.substr(pos)));
+    } catch (...) {
+        return 0;
+    }
 }
 
 static int trailing_num(const std::string& s) {
     auto i = s.size();
     while (i > 0 && std::isdigit(static_cast<unsigned char>(s[i - 1]))) --i;
     if (i == s.size()) return -1;
-    try { return std::stoi(s.substr(i)); } catch (...) { return -1; }
+    try {
+        return std::stoi(s.substr(i));
+    } catch (...) {
+        return -1;
+    }
 }
 
 static bool is_newer(const std::string& remote, const std::string& local) {
-    const auto split = [](const std::string& v) -> std::pair<std::string, std::string> {
+    const auto split = [](const std::string& v) {
         const auto d = v.find('-');
         return d == std::string::npos
             ? std::make_pair(v, std::string{})
@@ -102,11 +110,15 @@ static bool is_newer(const std::string& remote, const std::string& local) {
  * @param host  Output: scheme + host, e.g. "https://example.com".
  * @param path  Output: path component, e.g. "/foo/bar".
  */
-static void parse_url(const std::string& url, std::string& host, std::string& path) {
+static void parse_url(std::string_view url, std::string& host, std::string& path) {
     const std::string prefix = "https://";
-    const auto host_start    = url.substr(0, prefix.size()) == prefix ? prefix.size() : 0;
+    const auto host_start    = url.starts_with(prefix) ? prefix.size() : 0;
     const auto path_start    = url.find('/', host_start);
-    host = prefix + url.substr(host_start, path_start - host_start);
+
+    host = std::format("{}{}",
+                       prefix,
+                       url.substr(host_start, path_start - host_start)
+           );
     path = url.substr(path_start);
 }
 
@@ -121,7 +133,9 @@ static void parse_url(const std::string& url, std::string& host, std::string& pa
  * @return The final HTTP response, or nullptr on failure.
  */
 static httplib::Result fetch_with_redirect(const std::string& url) {
-    std::string host, path;
+    std::string host;
+    std::string path;
+
     parse_url(url, host, path);
 
     httplib::Client cli(host);
@@ -142,7 +156,9 @@ static httplib::Result fetch_with_redirect(const std::string& url) {
         const auto it = res->headers.find("Location");
         if (it != res->headers.end()) {
             Log::info("Updater: redirecting to {}", it->second);
-            std::string rhost, rpath;
+
+            std::string rhost;
+            std::string rpath;
             parse_url(it->second, rhost, rpath);
 
             httplib::Client rcli(rhost);
@@ -204,8 +220,8 @@ static void launch_script(
 
         // redirect stdin/stdout/stderr to /dev/null so the child
         // and anything it launches don't inherit the terminal
-        int devnull = open("/dev/null", O_RDWR);
-        if (devnull >= 0) {
+
+        if (int devnull = open("/dev/null", O_RDWR); devnull >= 0) {
             dup2(devnull, STDIN_FILENO);
             dup2(devnull, STDOUT_FILENO);
             dup2(devnull, STDERR_FILENO);
@@ -232,7 +248,7 @@ Updater::~Updater() {
 
 void Updater::check_async() {
     m_status = Status::Checking;
-    m_thread = std::thread(&Updater::do_check, this);
+    m_thread = std::jthread(&Updater::do_check, this);
 }
 
 Updater::Status Updater::status() const {
@@ -331,9 +347,7 @@ void Updater::dismiss() {
 }
 
 void Updater::download_and_install() {
-    if (m_thread.joinable())
-        m_thread.join();
-    m_thread = std::thread(&Updater::do_install, this);
+    m_thread = std::jthread(&Updater::do_install, this);
 }
 
 void Updater::do_install() {

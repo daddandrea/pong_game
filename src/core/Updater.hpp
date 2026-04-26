@@ -30,7 +30,7 @@ private:
     std::atomic<Status> m_status { Status::Idle };
     std::string         m_latest_version;
     std::string         m_download_url;
-    std::thread         m_thread;
+    std::jthread         m_thread;
 };
 
 } // namespace core
