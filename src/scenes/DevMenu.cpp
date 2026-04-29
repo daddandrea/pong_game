@@ -15,7 +15,7 @@ void on_win_score_changed(game::GameState* state) {
     }
 }
 
-void render_dev_menu(game::GameState* state, game::GameSettings& settings, game::DevSettings& dev) {
+void render_dev_menu(game::GameState* state, game::GameSettings& settings, const game::DevSettings& dev) {
     if (!dev.show_dev)
         return;
 

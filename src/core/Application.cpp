@@ -236,8 +236,10 @@ void Application::run() {
             draw_update_status(m_updater);
         }
 
-        game::GameState* state = m_scene_manager->find_game_state();
-        scenes::render_dev_menu(state, m_settings, m_dev);
+        #ifdef PONG_DEV
+        scenes::render_dev_menu(m_scene_manager->find_game_state(), m_settings, m_dev);
+        #endif
+
         dismiss_overlay_if_game_over();
 
         ImGui::Render();
