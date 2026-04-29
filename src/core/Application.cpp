@@ -29,16 +29,6 @@
 
 namespace core {
 
-static constexpr float WORLD_W = 20.0f;
-static constexpr float WORLD_H = 12.0f;
-
-static constexpr int WIN_W = 1280;
-static constexpr int WIN_H = 768;
-
-static constexpr const char* FONT_PATH = "assets/fonts/LiberationMono-Regular.ttf";
-
-static constexpr float MAX_DT = 0.05f;
-
 static float px_to_world_x(float px, float win_w) {
     return (px / win_w) * WORLD_W - (WORLD_W * 0.5f);
 }

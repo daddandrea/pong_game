@@ -13,6 +13,16 @@ namespace renderer { class Renderer; }
 
 namespace core {
 
+static constexpr float WORLD_W = 20.0f;
+static constexpr float WORLD_H = 12.0f;
+
+static constexpr int WIN_W = 1280;
+static constexpr int WIN_H = 720;
+
+static constexpr const char* FONT_PATH = "assets/fonts/LiberationMono-Regular.ttf";
+
+static constexpr float MAX_DT = 0.05f;
+
 class Application {
 
 public:
@@ -33,7 +43,7 @@ private:
     void process_events();
     void dismiss_overlay_if_game_over();
 
-    Window m_window;
+    Window m_window = Window("Pong", WIN_W, WIN_H);
     InputState m_input;
     std::string m_font_path;
 
