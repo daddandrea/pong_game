@@ -1,17 +1,11 @@
 #include "GameScene.hpp"
 #include "core/AudioManager.hpp"
-#include "core/InputState.hpp"
-#include <random>
-#ifdef PONG_DEV
-#include "game/DevSettings.hpp"
-#endif
-#include "game/GameConfig.hpp"
-#include "game/GameSettings.hpp"
 #include "game/Math.hpp"
 #include "game/Physics.hpp"
 #include "renderer/Renderer2D.hpp"
 #include "scenes/Colors.hpp"
-#include "scenes/IScene.hpp"
+
+#include <random>
 #include <string>
 
 namespace scenes {
@@ -21,17 +15,18 @@ static bool rand_bool() {
     return std::bernoulli_distribution{0.5}(gen);
 }
 
-GameScene::GameScene()
-: m_left_paddle(game::PaddleSide::Left),
-  m_right_paddle(game::PaddleSide::Right)
+GameScene::GameScene(game::GameSettings& settings, game::GameConfig& config, game::DevSettings& dev)
+    : m_settings(settings),
+      m_config(config),
+      m_dev(dev)
 {}
 
 void GameScene::on_enter() {
-    m_config = game::g_config;
+    m_local_config = m_config;
 
     m_game_state.score_left  = 0;
     m_game_state.score_right = 0;
-    m_game_state.win_score   = m_config.win_score;
+    m_game_state.win_score = m_local_config.win_score;
     m_ball_goes_right = rand_bool();
 
     m_left_paddle  = game::PaddleState(game::PaddleSide::Left);
@@ -52,14 +47,14 @@ std::string GameScene::update(const core::InputState& input, float dt) {
 
     if (input.is_pressed(Key::Escape)) return Transition::Push(Transition::Pause);
 #ifdef PONG_DEV
-    if (input.is_pressed(Key::F1)) game::g_dev.show_dev = !game::g_dev.show_dev;
+    if (input.is_pressed(Key::F1)) m_dev.show_dev = !m_dev.show_dev;
 #endif
 
     switch (m_game_state.phase) {
         case game::GamePhase::Countdown:
             m_timer -= dt;
             if (m_timer <= 0.0f) {
-                m_ball.launch(m_ball_goes_right, rand_bool(), game::g_settings);
+                m_ball.launch(m_ball_goes_right, rand_bool(), m_settings);
                 m_game_state.phase = game::GamePhase::Playing;
             }
             break;
@@ -74,22 +69,22 @@ std::string GameScene::update(const core::InputState& input, float dt) {
             const bool left_parry_key  = input.is_pressed(Key::Space);
             const bool right_parry_key = input.is_pressed(Key::Enter);
 
-            if (m_config.left == game::PlayerType::Human) {
-                m_left_paddle.update(dt, left_up, left_down, game::g_settings);
+            if (m_local_config.left == game::PlayerType::Human) {
+                m_left_paddle.update(dt, left_up, left_down, m_settings);
             } else {
-                m_cpu.update(m_left_paddle, m_ball, dt, game::g_settings);
+                m_cpu.update(m_left_paddle, m_ball, dt, m_settings);
             }
 
-            if (m_config.right == game::PlayerType::Human) {
-                m_right_paddle.update(dt, right_up, right_down, game::g_settings);
+            if (m_local_config.right == game::PlayerType::Human) {
+                m_right_paddle.update(dt, right_up, right_down, m_settings);
             } else {
-                m_cpu.update(m_right_paddle, m_ball, dt, game::g_settings);
+                m_cpu.update(m_right_paddle, m_ball, dt, m_settings);
             }
 
 
             // ── Ball physics ──────────────────────────────────────────────────
             m_ball.update(dt);
-            if (game::handle_wall_bounce(m_ball, game::g_settings))
+            if (game::handle_wall_bounce(m_ball, m_settings))
                 core::AudioManager::get().play(core::AudioManager::Sound::WallHit);
 
             const bool approaching_left  = m_ball.hor_dir < 0.0f;
@@ -97,21 +92,21 @@ std::string GameScene::update(const core::InputState& input, float dt) {
 
             const bool left_parry  = left_parry_key
                                   && approaching_left
-                                  && m_config.left == game::PlayerType::Human;
+                                  && m_local_config.left == game::PlayerType::Human;
 
             const bool right_parry = right_parry_key
                                   && approaching_right
-                                  && m_config.right == game::PlayerType::Human;
+                                  && m_local_config.right == game::PlayerType::Human;
 
-            if (game::handle_ball_paddle_collision(m_ball, m_left_paddle, game::g_settings, left_parry))
+            if (game::handle_ball_paddle_collision(m_ball, m_left_paddle, m_settings, left_parry))
                 core::AudioManager::get().play(core::AudioManager::Sound::PaddleHit);
 
-            if (game::handle_ball_paddle_collision(m_ball, m_right_paddle, game::g_settings, right_parry))
+            if (game::handle_ball_paddle_collision(m_ball, m_right_paddle, m_settings, right_parry))
                 core::AudioManager::get().play(core::AudioManager::Sound::PaddleHit);
 
 
             // ── Scoring ─────────────────────────────────────────────────────────
-            const int scored = game::calc_score(m_ball, game::g_settings);
+            const int scored = game::calc_score(m_ball, m_settings);
             if (scored != 0) {
                 core::AudioManager::get().play(core::AudioManager::Sound::Score);
                 if (scored > 0) m_game_state.score_right++;
@@ -173,17 +168,17 @@ void GameScene::render(renderer::Renderer2D& r) const {
 
     // ── Paddles ─────────────────────────────────────────────────────────
     r.draw_quad(m_left_paddle.pos,
-                {game::PADDLE_HALF_W * 2.0f, game::g_settings.paddle_half_h * 2.0f},
+                {game::PADDLE_HALF_W * 2.0f, m_settings.paddle_half_h * 2.0f},
                 Colors::PlayerLeft);
 
     r.draw_quad(m_right_paddle.pos,
-                {game::PADDLE_HALF_W * 2.0f, game::g_settings.paddle_half_h * 2.0f},
+                {game::PADDLE_HALF_W * 2.0f, m_settings.paddle_half_h * 2.0f},
                 Colors::PlayerRight);
 
 
     // ── Ball ─────────────────────────────────────────────────────────
     if (m_ball.in_play) {
-        r.draw_circle(m_ball.pos, game::g_settings.ball_radius, Colors::BallColor);
+        r.draw_circle(m_ball.pos, m_settings.ball_radius, Colors::BallColor);
     }
 
     // ── Scores ─────────────────────────────────────────────────────────

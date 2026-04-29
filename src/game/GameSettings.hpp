@@ -14,6 +14,4 @@ struct GameSettings {
     float cpu_speed         = CPU_SPEED;
 };
 
-inline GameSettings g_settings;
-
 } // namespace game

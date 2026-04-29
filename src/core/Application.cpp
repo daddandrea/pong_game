@@ -1,7 +1,7 @@
 #include "Application.hpp"
+
 #include "core/Exceptions.hpp"
 #include "core/Logger.hpp"
-#include "game/GameSettings.hpp"
 #include "scenes/CreditsScene.hpp"
 #include "scenes/DevMenu.hpp"
 #include "scenes/GameScene.hpp"
@@ -107,14 +107,23 @@ Application::Application() : m_window("Pong", WIN_W, WIN_H) {
     m_renderer->load_font(m_font_path, 3.0f * static_cast<float>(fb_h) / WORLD_H);
 
     m_scene_manager = std::make_unique<scenes::SceneManager>();
+
     m_scene_manager->register_scene(Transition::MainMenu,
-                                    [] { return std::make_unique<scenes::MainMenuScene>(); });
+                                    [&c = m_config] { return std::make_unique<scenes::MainMenuScene>(c); }
+    );
+
     m_scene_manager->register_scene(Transition::Game,
-                                    [] { return std::make_unique<scenes::GameScene>(); });
+                                    [&s = m_settings, &c = m_config, &d = m_dev ]
+                                        { return std::make_unique<scenes::GameScene>(s, c, d); }
+    );
+
     m_scene_manager->register_scene(Transition::Pause,
-                                    [] { return std::make_unique<scenes::PauseScene>(); });
+                                    [&d = m_dev] { return std::make_unique<scenes::PauseScene>(d); }
+    );
+
     m_scene_manager->register_scene(Transition::Credits,
-                                    [] { return std::make_unique<scenes::CreditsScene>(); });
+                                    [] { return std::make_unique<scenes::CreditsScene>(); }
+    );
 
     m_scene_manager->push(Transition::MainMenu);
 
@@ -228,7 +237,7 @@ void Application::run() {
         }
 
         game::GameState* state = m_scene_manager->find_game_state();
-        scenes::render_dev_menu(state, game::g_settings);
+        scenes::render_dev_menu(state, m_settings, m_dev);
         dismiss_overlay_if_game_over();
 
         ImGui::Render();

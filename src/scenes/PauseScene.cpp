@@ -10,7 +10,9 @@
 
 namespace scenes {
 
-PauseScene::PauseScene() {
+PauseScene::PauseScene(game::DevSettings& dev_settings)
+    : m_dev(dev_settings) {
+
     m_buttons.push_back({
         static_cast<int>(PauseItem::Resume),
         "Resume",
@@ -36,7 +38,7 @@ std::string PauseScene::update(const core::InputState& input, float dt) {
 
     if (input.is_pressed(core::Key::Escape)) return Transition::Pop;
 #ifdef PONG_DEV
-    if (input.is_pressed(core::Key::F1)) game::g_dev.show_dev = !game::g_dev.show_dev;
+    if (input.is_pressed(core::Key::F1)) m_dev.show_dev = !m_dev.show_dev;
 #endif
 
     for (auto& btn : m_buttons) {

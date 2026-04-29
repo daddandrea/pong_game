@@ -12,6 +12,4 @@ struct GameConfig {
     int win_score    = STANDARD_WIN_SCORE;
 };
 
-inline GameConfig g_config;
-
 }

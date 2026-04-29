@@ -4,6 +4,9 @@
 #include "core/InputState.hpp"
 #include "core/Updater.hpp"
 #include "core/Window.hpp"
+#include "game/DevSettings.hpp"
+#include "game/GameConfig.hpp"
+#include "game/GameSettings.hpp"
 #include "scenes/SceneManager.hpp"
 
 #include <memory>
@@ -51,6 +54,10 @@ private:
     Updater      m_updater;
     std::unique_ptr<scenes::SceneManager> m_scene_manager;
     std::unique_ptr<renderer::Renderer2D> m_renderer;
+
+    game::GameSettings m_settings;
+    game::GameConfig   m_config;
+    game::DevSettings  m_dev;
 };
 
 } // namespace core

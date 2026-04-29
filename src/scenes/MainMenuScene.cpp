@@ -20,7 +20,9 @@ bool Button::contains(glm::vec2 pt) const {
 }
 
 // ── MainMenuScene ─────────────────────────────────────────────────────────────
-MainMenuScene::MainMenuScene() {
+MainMenuScene::MainMenuScene(game::GameConfig& config)
+    : m_config(config) {
+
     struct Entry {
         MenuItem item;
         const char* label;
@@ -53,18 +55,18 @@ std::string MainMenuScene::update(const core::InputState& input, float dt) {
 
             switch (static_cast<MenuItem>(btn.item)) {
                 case MenuItem::PlayerVsCpu:
-                    game::g_config.left = game::PlayerType::Human;
-                    game::g_config.right = game::PlayerType::Cpu;
+                    m_config.left  = game::PlayerType::Human;
+                    m_config.right = game::PlayerType::Cpu;
                     return Transition::Game;
 
                 case MenuItem::PlayerVsPlayer:
-                    game::g_config.left = game::PlayerType::Human;
-                    game::g_config.right = game::PlayerType::Human;
+                    m_config.left  = game::PlayerType::Human;
+                    m_config.right = game::PlayerType::Human;
                     return Transition::Game;
 
                 case MenuItem::CpuVsCpu:
-                    game::g_config.left = game::PlayerType::Cpu;
-                    game::g_config.right = game::PlayerType::Cpu;
+                    m_config.left  = game::PlayerType::Cpu;
+                    m_config.right = game::PlayerType::Cpu;
                     return Transition::Game;
 
                 case MenuItem::Credits:
