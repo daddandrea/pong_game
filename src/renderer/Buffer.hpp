@@ -14,7 +14,7 @@ public:
     Buffer(const Buffer&) = delete;
     Buffer& operator=(const Buffer&) = delete;
 
-    void upload(const std::vector<float>& data, int vertex_size);
+    void upload(const std::vector<float>& data, int vertex_size) const;
 
     void draw(GLenum mode, int vertex_count) const;
 
