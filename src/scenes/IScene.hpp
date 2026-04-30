@@ -25,8 +25,8 @@ inline bool is_push(const std::string& t) {
     return t.size() > 1 && t[0] == '>';
 }
 
-inline std::string get_push_target(const std::string& t) {
-    return t.substr(1);
+inline std::string get_push_target(std::string_view target) {
+    return static_cast<std::string>(target.substr(1));
 }
 
 }
@@ -37,11 +37,17 @@ class IScene {
 public:
     virtual ~IScene() = default;
 
-    virtual void on_enter() {}
+    virtual void on_enter() {
+        /* called once when this scene is pushed and becomes the active scene */
+    }
 
-    virtual void on_resume() {}
+    virtual void on_resume() {
+        /* called when the scene pushed on top of this one is popped, making this scene active again */
+    }
 
-    virtual void on_exit() {}
+    virtual void on_exit() {
+        /* called once when this scene is popped off the stack and destroyed */
+    }
 
     virtual std::string update(const core::InputState& input, float dt) = 0;
 
