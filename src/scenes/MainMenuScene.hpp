@@ -40,7 +40,6 @@ private:
     game::GameConfig& m_config;
 
     std::vector<Button> m_buttons;
-    int m_hovered_idx = -1;
 
     static constexpr float BTN_W = 5.0f;
     static constexpr float BTN_H = 0.9f;
