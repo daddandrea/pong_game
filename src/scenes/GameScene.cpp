@@ -1,5 +1,6 @@
 #include "GameScene.hpp"
 #include "core/AudioManager.hpp"
+#include "core/InputState.hpp"
 #include "game/Math.hpp"
 #include "game/Physics.hpp"
 #include "renderer/Renderer2D.hpp"
@@ -42,6 +43,75 @@ void GameScene::reset_round(bool ball_goes_right) {
     m_timer = COUNTDOWN_TIME;
 }
 
+void GameScene::handle_paddle_movement(const core::InputState& input, float dt) {
+    using enum core::Key;
+
+    const bool left_up    = input.is_held(W);
+    const bool left_down  = input.is_held(S);
+    const bool right_down = input.is_held(Down);
+    const bool right_up   = input.is_held(Up);
+
+    if (m_local_config.left == game::PlayerType::Human) {
+        m_left_paddle.update(dt, left_up, left_down, m_settings);
+    } else {
+        m_cpu.update(m_left_paddle, m_ball, dt, m_settings);
+    }
+
+    if (m_local_config.right == game::PlayerType::Human) {
+        m_right_paddle.update(dt, right_up, right_down, m_settings);
+    } else {
+        m_cpu.update(m_right_paddle, m_ball, dt, m_settings);
+    }
+}
+
+void GameScene::handle_ball_physics(const core::InputState& input, float dt) {
+    const bool left_parry_key  = input.is_pressed(core::Key::Space);
+    const bool right_parry_key = input.is_pressed(core::Key::Enter);
+
+    m_ball.update(dt);
+    if (game::handle_wall_bounce(m_ball, m_settings))
+        core::AudioManager::get().play(core::AudioManager::Sound::WallHit);
+
+    const bool approaching_left  = m_ball.hor_dir < 0.0f;
+    const bool approaching_right = m_ball.hor_dir > 0.0f;
+
+    const bool left_parry  = left_parry_key
+        && approaching_left
+        && m_local_config.left == game::PlayerType::Human;
+
+    const bool right_parry = right_parry_key
+        && approaching_right
+        && m_local_config.right == game::PlayerType::Human;
+
+    if (game::handle_ball_paddle_collision(m_ball, m_left_paddle, m_settings, left_parry))
+        core::AudioManager::get().play(core::AudioManager::Sound::PaddleHit);
+
+    if (game::handle_ball_paddle_collision(m_ball, m_right_paddle, m_settings, right_parry))
+        core::AudioManager::get().play(core::AudioManager::Sound::PaddleHit);
+}
+
+void GameScene::handle_scoring() {
+    const int scored = game::calc_score(m_ball, m_settings);
+    if (scored != 0) {
+        core::AudioManager::get().play(core::AudioManager::Sound::Score);
+
+        scored > 0 ? m_game_state.score_right++ : m_game_state.score_left++;
+
+        m_ball.reset();
+        m_game_state.phase = game::GamePhase::PointScored;
+        m_timer = POINT_FREEZE_TIME;
+
+        m_ball_goes_right = (scored > 0);
+
+        if (game::is_game_over(m_game_state.score_left, m_game_state.score_right, m_game_state.win_score)) {
+            m_game_state.winner = (m_game_state.score_left >= m_game_state.win_score)
+                ? game::Winner::Left
+                : game::Winner::Right;
+            m_game_state.phase = game::GamePhase::GameOver;
+        }
+    }
+}
+
 std::string GameScene::update(const core::InputState& input, float dt) {
     using namespace core;
 
@@ -51,7 +121,9 @@ std::string GameScene::update(const core::InputState& input, float dt) {
 #endif
 
     switch (m_game_state.phase) {
-        case game::GamePhase::Countdown:
+        using enum game::GamePhase;
+
+        case Countdown:
             m_timer -= dt;
             if (m_timer <= 0.0f) {
                 m_ball.launch(m_ball_goes_right, rand_bool(), m_settings);
@@ -59,83 +131,21 @@ std::string GameScene::update(const core::InputState& input, float dt) {
             }
             break;
 
-        case game::GamePhase::Playing: {
-            // ── Move paddles ──────────────────────────────────────────────────
-            const bool left_up         = input.is_held(Key::W);
-            const bool left_down       = input.is_held(Key::S);
-            const bool right_down      = input.is_held(Key::Down);
-            const bool right_up        = input.is_held(Key::Up);
-
-            const bool left_parry_key  = input.is_pressed(Key::Space);
-            const bool right_parry_key = input.is_pressed(Key::Enter);
-
-            if (m_local_config.left == game::PlayerType::Human) {
-                m_left_paddle.update(dt, left_up, left_down, m_settings);
-            } else {
-                m_cpu.update(m_left_paddle, m_ball, dt, m_settings);
-            }
-
-            if (m_local_config.right == game::PlayerType::Human) {
-                m_right_paddle.update(dt, right_up, right_down, m_settings);
-            } else {
-                m_cpu.update(m_right_paddle, m_ball, dt, m_settings);
-            }
-
-
-            // ── Ball physics ──────────────────────────────────────────────────
-            m_ball.update(dt);
-            if (game::handle_wall_bounce(m_ball, m_settings))
-                core::AudioManager::get().play(core::AudioManager::Sound::WallHit);
-
-            const bool approaching_left  = m_ball.hor_dir < 0.0f;
-            const bool approaching_right = m_ball.hor_dir > 0.0f;
-
-            const bool left_parry  = left_parry_key
-                                  && approaching_left
-                                  && m_local_config.left == game::PlayerType::Human;
-
-            const bool right_parry = right_parry_key
-                                  && approaching_right
-                                  && m_local_config.right == game::PlayerType::Human;
-
-            if (game::handle_ball_paddle_collision(m_ball, m_left_paddle, m_settings, left_parry))
-                core::AudioManager::get().play(core::AudioManager::Sound::PaddleHit);
-
-            if (game::handle_ball_paddle_collision(m_ball, m_right_paddle, m_settings, right_parry))
-                core::AudioManager::get().play(core::AudioManager::Sound::PaddleHit);
-
-
-            // ── Scoring ─────────────────────────────────────────────────────────
-            const int scored = game::calc_score(m_ball, m_settings);
-            if (scored != 0) {
-                core::AudioManager::get().play(core::AudioManager::Sound::Score);
-                if (scored > 0) m_game_state.score_right++;
-                else            m_game_state.score_left++;
-
-                m_ball.reset();
-                m_game_state.phase = game::GamePhase::PointScored;
-                m_timer = POINT_FREEZE_TIME;
-
-                m_ball_goes_right = (scored > 0);
-
-                if (game::is_game_over(m_game_state.score_left, m_game_state.score_right, m_game_state.win_score)) {
-                    m_game_state.winner = (m_game_state.score_left >= m_game_state.win_score)
-                                 ? game::Winner::Left
-                                 : game::Winner::Right;
-                    m_game_state.phase = game::GamePhase::GameOver;
-                }
-            }
+        case Playing: {
+            handle_paddle_movement(input, dt);
+            handle_ball_physics(input, dt);
+            handle_scoring();
             break;
         }
 
-        case game::GamePhase::PointScored:
+        case PointScored:
             m_timer -= dt;
             if (m_timer <= 0.0f)
                 reset_round(m_ball_goes_right);
 
             break;
 
-        case game::GamePhase::GameOver:
+        case GameOver:
             if (input.is_pressed(Key::Space) || input.is_pressed(Key::Escape))
                 return Transition::MainMenu;
             break;
@@ -156,7 +166,7 @@ void GameScene::render(renderer::Renderer2D& r) const {
         constexpr float GAP_H  = 0.3f;
         constexpr float STEP   = DASH_H + GAP_H;
 
-        const float start_y = -static_cast<float>(DASHES / 2.0f) * STEP + DASH_H / 2.0f;
+        const float start_y = -(DASHES / 2.0f) * STEP + DASH_H / 2.0f;
 
         for (int i = 0; i < DASHES; ++i) {
             r.draw_quad({0.0f, start_y + static_cast<float>(i) * STEP}, 
@@ -203,7 +213,7 @@ void GameScene::render(renderer::Renderer2D& r) const {
 
             const glm::vec4 col = (m_game_state.winner == game::Winner::Left)
                                     ? Colors::PlayerLeft
-                                    : Colors::PlayerLeft;
+                                    : Colors::PlayerRight;
 
             r.draw_quad({0.0f, 0.0f}, {14.0f, 4.0f}, {0.0f, 0.0f, 0.0f, 0.75f});
             r.draw_text(winner, 0.0f, 0.8f, 1.1f, col);

@@ -33,7 +33,8 @@ private:
     game::BallState m_ball;
     game::PaddleState m_left_paddle  = game::PaddleState(game::PaddleSide::Left);
     game::PaddleState m_right_paddle = game::PaddleState(game::PaddleSide::Right);
-    game::CpuController m_cpu;
+
+    [[no_unique_address]] game::CpuController m_cpu;
 
     game::GameConfig m_local_config;
 
@@ -43,6 +44,9 @@ private:
     bool m_ball_goes_right = true;
 
     void reset_round(bool ball_goes_right);
+    void handle_paddle_movement(const core::InputState& input, float dt);
+    void handle_ball_physics(const core::InputState& input, float dt);
+    void handle_scoring();
 };
 
 } // namespace scenes
