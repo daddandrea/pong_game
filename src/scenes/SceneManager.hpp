@@ -40,7 +40,7 @@ public:
     game::GameState* find_game_state() const;
 
 private:
-    std::map<std::string, Factory> m_factories;
+    std::map<std::string, Factory, std::less<>> m_factories;
     std::vector<std::unique_ptr<IScene>> m_stack;
 
     void do_push_scene(const std::string& name);

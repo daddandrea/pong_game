@@ -1,5 +1,6 @@
 #pragma once
 
+#include "game/GameConfig.hpp"
 #include "scenes/IScene.hpp"
 
 #include <glm/glm.hpp>
@@ -30,14 +31,15 @@ enum class MenuItem {
 class MainMenuScene : public IScene {
 
 public:
-    MainMenuScene();
+    explicit MainMenuScene(game::GameConfig& config);
 
     std::string update(const core::InputState &input, float dt) override;
     void render(renderer::Renderer2D &r) const override;
 
 private:
+    game::GameConfig& m_config;
+
     std::vector<Button> m_buttons;
-    int m_hovered_idx = -1;
 
     static constexpr float BTN_W = 5.0f;
     static constexpr float BTN_H = 0.9f;

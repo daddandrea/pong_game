@@ -4,6 +4,7 @@
 #include "renderer/Renderer2D.hpp"
 #include "scenes/Colors.hpp"
 #include "scenes/IScene.hpp"
+#include <array>
 
 #ifndef PONG_VERSION
 #define PONG_VERSION "0.0.0"
@@ -20,19 +21,22 @@ bool Button::contains(glm::vec2 pt) const {
 }
 
 // ── MainMenuScene ─────────────────────────────────────────────────────────────
-MainMenuScene::MainMenuScene() {
+MainMenuScene::MainMenuScene(game::GameConfig& config)
+    : m_config(config) {
+    using enum MenuItem;
+
     struct Entry {
         MenuItem item;
         const char* label;
         float y;
     };
 
-    const Entry entries[] = {
-        {MenuItem::PlayerVsCpu   , "Player vs CPU",     1.2f},
-        {MenuItem::PlayerVsPlayer, "Player vs Player",  0.0f},
-        {MenuItem::CpuVsCpu      , "CPU vs CPU",       -1.2f},
-        {MenuItem::Credits       , "Credits",          -2.6f},
-        {MenuItem::Quit          , "Quit",             -3.8f},
+    const std::array entries = {
+        Entry{PlayerVsCpu   , "Player vs CPU",     1.2f},
+        Entry{PlayerVsPlayer, "Player vs Player",  0.0f},
+        Entry{CpuVsCpu      , "CPU vs CPU",       -1.2f},
+        Entry{Credits       , "Credits",          -2.6f},
+        Entry{Quit          , "Quit",             -3.8f},
     };
 
     for (const auto& e : entries) {
@@ -52,19 +56,21 @@ std::string MainMenuScene::update(const core::InputState& input, float dt) {
             if (!btn.hovered) continue;
 
             switch (static_cast<MenuItem>(btn.item)) {
+                using enum game::PlayerType;
+
                 case MenuItem::PlayerVsCpu:
-                    game::g_config.left = game::PlayerType::Human;
-                    game::g_config.right = game::PlayerType::Cpu;
+                    m_config.left  = Human;
+                    m_config.right = Cpu;
                     return Transition::Game;
 
                 case MenuItem::PlayerVsPlayer:
-                    game::g_config.left = game::PlayerType::Human;
-                    game::g_config.right = game::PlayerType::Human;
+                    m_config.left  = Human;
+                    m_config.right = Human;
                     return Transition::Game;
 
                 case MenuItem::CpuVsCpu:
-                    game::g_config.left = game::PlayerType::Cpu;
-                    game::g_config.right = game::PlayerType::Cpu;
+                    m_config.left  = Cpu;
+                    m_config.right = Cpu;
                     return Transition::Game;
 
                 case MenuItem::Credits:
@@ -72,6 +78,7 @@ std::string MainMenuScene::update(const core::InputState& input, float dt) {
 
                 case MenuItem::Quit:
                     return Transition::Quit;
+
             }
         }
     }

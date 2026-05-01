@@ -1,7 +1,7 @@
 #include "Application.hpp"
+
 #include "core/Exceptions.hpp"
 #include "core/Logger.hpp"
-#include "game/GameSettings.hpp"
 #include "scenes/CreditsScene.hpp"
 #include "scenes/DevMenu.hpp"
 #include "scenes/GameScene.hpp"
@@ -28,16 +28,6 @@
 #include <chrono>
 
 namespace core {
-
-static constexpr float WORLD_W = 20.0f;
-static constexpr float WORLD_H = 12.0f;
-
-static constexpr int WIN_W = 1280;
-static constexpr int WIN_H = 768;
-
-static constexpr const char* FONT_PATH = "assets/fonts/LiberationMono-Regular.ttf";
-
-static constexpr float MAX_DT = 0.05f;
 
 static float px_to_world_x(float px, float win_w) {
     return (px / win_w) * WORLD_W - (WORLD_W * 0.5f);
@@ -117,14 +107,23 @@ Application::Application() : m_window("Pong", WIN_W, WIN_H) {
     m_renderer->load_font(m_font_path, 3.0f * static_cast<float>(fb_h) / WORLD_H);
 
     m_scene_manager = std::make_unique<scenes::SceneManager>();
+
     m_scene_manager->register_scene(Transition::MainMenu,
-                                    [] { return std::make_unique<scenes::MainMenuScene>(); });
+                                    [&c = m_config] { return std::make_unique<scenes::MainMenuScene>(c); }
+    );
+
     m_scene_manager->register_scene(Transition::Game,
-                                    [] { return std::make_unique<scenes::GameScene>(); });
+                                    [&s = m_settings, &c = m_config, &d = m_dev ]
+                                        { return std::make_unique<scenes::GameScene>(s, c, d); }
+    );
+
     m_scene_manager->register_scene(Transition::Pause,
-                                    [] { return std::make_unique<scenes::PauseScene>(); });
+                                    [&d = m_dev] { return std::make_unique<scenes::PauseScene>(d); }
+    );
+
     m_scene_manager->register_scene(Transition::Credits,
-                                    [] { return std::make_unique<scenes::CreditsScene>(); });
+                                    [] { return std::make_unique<scenes::CreditsScene>(); }
+    );
 
     m_scene_manager->push(Transition::MainMenu);
 
@@ -237,8 +236,10 @@ void Application::run() {
             draw_update_status(m_updater);
         }
 
-        game::GameState* state = m_scene_manager->find_game_state();
-        scenes::render_dev_menu(state, game::g_settings);
+        #ifdef PONG_DEV
+        scenes::render_dev_menu(m_scene_manager->find_game_state(), m_settings, m_dev);
+        #endif
+
         dismiss_overlay_if_game_over();
 
         ImGui::Render();

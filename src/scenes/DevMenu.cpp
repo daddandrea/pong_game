@@ -1,5 +1,4 @@
 #include "DevMenu.hpp"
-#include "game/DevSettings.hpp"
 #include "game/Physics.hpp"
 #include <imgui.h>
 
@@ -16,8 +15,8 @@ void on_win_score_changed(game::GameState* state) {
     }
 }
 
-void render_dev_menu(game::GameState* state, game::GameSettings& settings) {
-    if (!game::g_dev.show_dev)
+void render_dev_menu(game::GameState* state, game::GameSettings& settings, const game::DevSettings& dev) {
+    if (!dev.show_dev)
         return;
 
     ImGui::Begin("Dev Settings");

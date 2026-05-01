@@ -14,7 +14,7 @@ Buffer::~Buffer() {
         glDeleteBuffers(1, &m_vbo);
 }
 
-void Buffer::upload(const std::vector<float>& data, int vertex_size) {
+void Buffer::upload(const std::vector<float>& data, int vertex_size) const {
     glBindVertexArray(m_vao);
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     glBufferData(GL_ARRAY_BUFFER,

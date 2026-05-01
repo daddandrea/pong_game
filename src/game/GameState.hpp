@@ -21,6 +21,5 @@ struct GameState {
     Winner winner   = Winner::Left;
 };
 
-inline GameState g_state;
 }
 

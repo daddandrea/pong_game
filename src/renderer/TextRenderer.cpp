@@ -48,7 +48,7 @@ void TextRenderer::draw(const std::string& text,
     SDL_DestroySurface(raw);
     if (!surf) return;
 
-    const float font_h = static_cast<float>(surf->h);
+    const auto font_h = static_cast<float>(surf->h);
     const float world_h = scale;
     const float world_w = scale * (static_cast<float>(surf->w) / font_h);
 
