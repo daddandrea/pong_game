@@ -59,7 +59,7 @@ void Renderer2D::load_font(const std::string& path, float size_px) {
     m_text_renderer->load_font(path, size_px);
 }
 
-void Renderer2D::draw_quad(const glm::vec2& pos, const glm::vec2& size, const glm::vec4& color) {
+void Renderer2D::draw_quad(const glm::vec2& pos, const glm::vec2& size, const glm::vec4& color) const {
     const float hw = size.x / 2;
     const float hh = size.y / 2;
     const float x0 = pos.x - hw;
@@ -83,7 +83,7 @@ void Renderer2D::draw_quad(const glm::vec2& pos, const glm::vec2& size, const gl
     m_shape_buffer->draw(GL_TRIANGLES, 6);
 }
 
-void Renderer2D::draw_circle(const glm::vec2& center, float radius, const glm::vec4& color, int segments) {
+void Renderer2D::draw_circle(const glm::vec2& center, float radius, const glm::vec4& color, int segments) const {
     std::vector<float> verts;
     verts.reserve(static_cast<size_t>(segments) * 6);
 

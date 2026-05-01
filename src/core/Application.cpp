@@ -92,7 +92,7 @@ static constexpr std::string_view BUILD_MODE = "Debug";
 static constexpr std::string_view BUILD_MODE = "Release";
 #endif
 
-Application::Application() : m_window("Pong", WIN_W, WIN_H) {
+Application::Application() {
     Log::info("Pong v{}", PONG_VERSION);
 
     m_renderer = std::make_unique<renderer::Renderer2D>();
