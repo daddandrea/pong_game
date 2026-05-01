@@ -108,7 +108,7 @@ void Renderer2D::draw_circle(const glm::vec2& center, float radius, const glm::v
     m_shape_buffer->draw(GL_TRIANGLES, segments * 3);
 }
 
-void Renderer2D::draw_rect_outline(const glm::vec2& pos, const glm::vec2& size, const glm::vec4& color, float thickness) {
+void Renderer2D::draw_rect_outline(const glm::vec2& pos, const glm::vec2& size, const glm::vec4& color, float thickness) const {
     const float hw = size.x / 2;
     const float hh = size.y / 2;
 
@@ -118,7 +118,7 @@ void Renderer2D::draw_rect_outline(const glm::vec2& pos, const glm::vec2& size, 
     draw_quad({pos.x + hw - thickness / 2, pos.y}, {thickness, size.y}, color); //RIGHT
 }
 
-void Renderer2D::draw_text(const std::string& text, float x, float y, float scale, const glm::vec4& color) {
+void Renderer2D::draw_text(const std::string& text, float x, float y, float scale, const glm::vec4& color) const {
     m_text_renderer->draw(text, x, y, scale, color, m_proj);
 }
 }
