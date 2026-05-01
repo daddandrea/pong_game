@@ -28,9 +28,9 @@ public:
 
     void load_font(const std::string& path, float size_px = DEFAULT_FONT_SIZE);
 
-    void draw_quad(const glm::vec2& pos, const glm::vec2& size, const glm::vec4& color);
+    void draw_quad(const glm::vec2& pos, const glm::vec2& size, const glm::vec4& color) const;
 
-    void draw_circle(const glm::vec2& center, float radius, const glm::vec4& color, int segments = DEFAULT_CIRCLE_SEGMENTS);
+    void draw_circle(const glm::vec2& center, float radius, const glm::vec4& color, int segments = DEFAULT_CIRCLE_SEGMENTS) const;
 
     void draw_rect_outline(const glm::vec2& pos, const glm::vec2& size, const glm::vec4& color, float thickness = DEFAULT_RECT_THICKNESS);
 
