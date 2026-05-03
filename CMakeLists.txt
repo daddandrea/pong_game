@@ -123,6 +123,8 @@ add_executable(Pong
     third_party/stb_vorbis.cpp
     src/core/AudioManager.cpp
     src/core/Updater.cpp
+    src/scenes/SinglePlayerMenuScene.cpp
+    src/scenes/MultiPlayerMenuScene.cpp
 )
 
 if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
