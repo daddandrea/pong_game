@@ -1,6 +1,8 @@
 #pragma once
 
 #include "game/GameState.hpp"
+
+#include <glm/glm.hpp>
 #include <string>
 
 namespace core { struct InputState; }
@@ -8,14 +10,16 @@ namespace renderer { class Renderer2D; }
 
 namespace Transition {
 
-inline constexpr const char* Stay      = "";
-inline constexpr const char* Quit      = "quit";
-inline constexpr const char* Pop       = "<";
+inline constexpr const char* Stay         = "";
+inline constexpr const char* Quit         = "quit";
+inline constexpr const char* Pop          = "<";
 
-inline constexpr const char* Game      = "game";
-inline constexpr const char* MainMenu  = "main_menu";
-inline constexpr const char* Pause     = "pause";
-inline constexpr const char* Credits   = "credits";
+inline constexpr const char* Game         = "game";
+inline constexpr const char* MainMenu     = "main_menu";
+inline constexpr const char* SinglePlayer = "single_player";
+inline constexpr const char* MultiPlayer  = "multi_player";
+inline constexpr const char* Pause        = "pause";
+inline constexpr const char* Credits      = "credits";
 
 inline std::string Push(const char* scene) {
     return std::string(">") + scene;
@@ -32,6 +36,21 @@ inline std::string get_push_target(std::string_view target) {
 }
 
 namespace scenes {
+
+struct Button {
+    int item = 0;
+    std::string label;
+    glm::vec2 center;
+    glm::vec2 size;
+    bool hovered = false;
+
+    bool contains(glm::vec2 pt) const {
+        return pt.x >= center.x - size.x / 2.0f
+            && pt.x <= center.x + size.x / 2.0f
+            && pt.y >= center.y - size.y / 2.0f
+            && pt.y <= center.y + size.y / 2.0f;
+    };
+};
 
 class IScene {
 public:

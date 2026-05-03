@@ -7,8 +7,10 @@
 #include "scenes/GameScene.hpp"
 #include "scenes/IScene.hpp"
 #include "scenes/MainMenuScene.hpp"
+#include "scenes/MultiPlayerMenuScene.hpp"
 #include "scenes/PauseScene.hpp"
 #include "renderer/Renderer2D.hpp"
+#include "scenes/SinglePlayerMenuScene.hpp"
 
 #include <glad/glad.h>
 #include <imgui.h>
@@ -110,6 +112,14 @@ Application::Application() {
 
     m_scene_manager->register_scene(Transition::MainMenu,
                                     [&c = m_config] { return std::make_unique<scenes::MainMenuScene>(c); }
+    );
+
+    m_scene_manager->register_scene(Transition::SinglePlayer,
+                                    [&c = m_config] { return std::make_unique<scenes::SinglePlayerMenuScene>(c); }
+    );
+
+    m_scene_manager->register_scene(Transition::MultiPlayer,
+                                    [&c = m_config] { return std::make_unique<scenes::MultiPlayerMenuScene>(c); }
     );
 
     m_scene_manager->register_scene(Transition::Game,

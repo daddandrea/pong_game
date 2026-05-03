@@ -1,26 +1,22 @@
 #pragma once
 
+#include "IScene.hpp"
+#include "core/InputState.hpp"
 #include "game/GameConfig.hpp"
-#include "scenes/IScene.hpp"
-
-#include <glm/glm.hpp>
-
-#include <string>
 #include <vector>
 
 namespace scenes {
 
-enum class MainMenuItem {
-    SinglePlayer,
-    MultiPlayer,
-    Credits,
-    Quit
+enum class SinglePlayerMenuItem {
+    PlayerVsCpu,
+    CpuVsCpu,
+    MainMenu
 };
 
-class MainMenuScene : public IScene {
+class SinglePlayerMenuScene : public IScene {
 
 public:
-    explicit MainMenuScene(game::GameConfig& config);
+    explicit SinglePlayerMenuScene(game::GameConfig& config);
 
     std::string update(const core::InputState &input, float dt) override;
     void render(renderer::Renderer2D &r) const override;

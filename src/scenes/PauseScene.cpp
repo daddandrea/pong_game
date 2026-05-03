@@ -6,7 +6,6 @@
 #include "renderer/Renderer2D.hpp"
 #include "scenes/Colors.hpp"
 #include "scenes/IScene.hpp"
-#include "scenes/MainMenuScene.hpp"
 
 namespace scenes {
 

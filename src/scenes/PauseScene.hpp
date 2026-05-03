@@ -2,7 +2,6 @@
 
 #include "game/DevSettings.hpp"
 #include "scenes/IScene.hpp"
-#include "scenes/MainMenuScene.hpp"
 #include "scenes/SceneManager.hpp"
 
 namespace scenes {

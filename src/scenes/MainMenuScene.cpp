@@ -12,31 +12,22 @@
 
 
 namespace scenes {
-// ── Button ────────────────────────────────────────────────────────────────────
-bool Button::contains(glm::vec2 pt) const {
-    return pt.x >= center.x - size.x / 2.0f
-        && pt.x <= center.x + size.x / 2.0f
-        && pt.y >= center.y - size.y / 2.0f
-        && pt.y <= center.y + size.y / 2.0f;
-}
 
-// ── MainMenuScene ─────────────────────────────────────────────────────────────
 MainMenuScene::MainMenuScene(game::GameConfig& config)
     : m_config(config) {
-    using enum MenuItem;
+    using enum MainMenuItem;
 
     struct Entry {
-        MenuItem item;
+        MainMenuItem item;
         const char* label;
         float y;
     };
 
     const std::array entries = {
-        Entry{PlayerVsCpu   , "Player vs CPU",     1.2f},
-        Entry{PlayerVsPlayer, "Player vs Player",  0.0f},
-        Entry{CpuVsCpu      , "CPU vs CPU",       -1.2f},
-        Entry{Credits       , "Credits",          -2.6f},
-        Entry{Quit          , "Quit",             -3.8f},
+        Entry{SinglePlayer, "Singleplayer",     1.2f},
+        Entry{MultiPlayer,  "Multiplayer",  0.0f},
+        Entry{Credits,      "Credits",          -1.2f},
+        Entry{Quit,         "Quit",             -2.6f},
     };
 
     for (const auto& e : entries) {
@@ -55,28 +46,19 @@ std::string MainMenuScene::update(const core::InputState& input, float dt) {
         for (const auto& btn : m_buttons) {
             if (!btn.hovered) continue;
 
-            switch (static_cast<MenuItem>(btn.item)) {
+            switch (static_cast<MainMenuItem>(btn.item)) {
                 using enum game::PlayerType;
 
-                case MenuItem::PlayerVsCpu:
-                    m_config.left  = Human;
-                    m_config.right = Cpu;
-                    return Transition::Game;
+                case MainMenuItem::SinglePlayer:
+                    return Transition::SinglePlayer;
 
-                case MenuItem::PlayerVsPlayer:
-                    m_config.left  = Human;
-                    m_config.right = Human;
-                    return Transition::Game;
+                case MainMenuItem::MultiPlayer:
+                    return Transition::MultiPlayer;
 
-                case MenuItem::CpuVsCpu:
-                    m_config.left  = Cpu;
-                    m_config.right = Cpu;
-                    return Transition::Game;
-
-                case MenuItem::Credits:
+                case MainMenuItem::Credits:
                     return Transition::Credits;
 
-                case MenuItem::Quit:
+                case MainMenuItem::Quit:
                     return Transition::Quit;
 
             }
