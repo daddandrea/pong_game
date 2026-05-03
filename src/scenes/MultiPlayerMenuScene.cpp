@@ -58,10 +58,8 @@ std::string MultiPlayerMenuScene::update(const core::InputState& input, float dt
                     return Transition::Game;
 
                 case MultiPlayerMenuItem::Online:
-                    //TODO: enter search match mode and then start game
-                    m_config.left  = Human;
-                    m_config.right = Human;
-                    return Transition::Game;
+                    m_config.left = Human;
+                    return Transition::MatchMaking;
 
                 case MultiPlayerMenuItem::MainMenu:
                     return Transition::MainMenu;

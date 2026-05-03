@@ -18,6 +18,9 @@ inline constexpr const char* Game         = "game";
 inline constexpr const char* MainMenu     = "main_menu";
 inline constexpr const char* SinglePlayer = "single_player";
 inline constexpr const char* MultiPlayer  = "multi_player";
+
+inline constexpr const char* MatchMaking  = "match_making";
+
 inline constexpr const char* Pause        = "pause";
 inline constexpr const char* Credits      = "credits";
 

@@ -2,6 +2,7 @@
 
 #include "core/Exceptions.hpp"
 #include "core/Logger.hpp"
+#include "scenes/MatchMakingScene.hpp"
 #include "scenes/CreditsScene.hpp"
 #include "scenes/DevMenu.hpp"
 #include "scenes/GameScene.hpp"
@@ -120,6 +121,11 @@ Application::Application() {
 
     m_scene_manager->register_scene(Transition::MultiPlayer,
                                     [&c = m_config] { return std::make_unique<scenes::MultiPlayerMenuScene>(c); }
+    );
+
+    m_scene_manager->register_scene(Transition::MatchMaking,
+                                    // [&c = m_config] { return std::make_unique<scenes::MatchMakingScene>(c); }
+                                    [&c = m_config] { return std::make_unique<scenes::MatchMakingScene>(c); }
     );
 
     m_scene_manager->register_scene(Transition::Game,
