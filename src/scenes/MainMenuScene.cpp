@@ -2,6 +2,7 @@
 #include "core/InputState.hpp"
 #include "game/GameConfig.hpp"
 #include "renderer/Renderer2D.hpp"
+#include "renderer/Button.hpp"
 #include "scenes/Colors.hpp"
 #include "scenes/IScene.hpp"
 #include <array>
@@ -15,6 +16,7 @@ namespace scenes {
 
 MainMenuScene::MainMenuScene(game::GameConfig& config)
     : m_config(config) {
+
     using enum MainMenuItem;
 
     struct Entry {
@@ -76,17 +78,7 @@ void MainMenuScene::render(renderer::Renderer2D& r) const {
     r.draw_text("v" PONG_VERSION, 0.0f, -5.7f, 0.4f, Colors::MainSubtle);
 
     for (const auto& btn : m_buttons) {
-        const glm::vec4 col = btn.hovered
-                                ? Colors::BtnBgHovered
-                                : Colors::BtnBgNormal;
-
-        r.draw_quad(btn.center, btn.size, col);
-        r.draw_rect_outline(btn.center, btn.size, Colors::BtnBorder, 0.04f);
-
-        const glm::vec4 text_col = btn.hovered
-                                     ? Colors::BtnTextHovered
-                                     : Colors::BtnTextNormal;
-        r.draw_text(btn.label, btn.center.x, btn.center.y, 0.5, text_col);
+        r.draw_button(btn);
     }
 }
 

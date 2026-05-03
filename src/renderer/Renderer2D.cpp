@@ -1,8 +1,10 @@
 #include "Renderer2D.hpp"
+#include "glm/ext/vector_float4.hpp"
 #include "renderer/Buffer.hpp"
 #include "renderer/Shader.hpp"
 #include "renderer/ShaderUniforms.hpp"
 #include "renderer/TextRenderer.hpp"
+#include "scenes/Colors.hpp"
 
 #include <glad/glad.h>
 #include <SDL3/SDL.h>
@@ -120,5 +122,19 @@ void Renderer2D::draw_rect_outline(const glm::vec2& pos, const glm::vec2& size, 
 
 void Renderer2D::draw_text(const std::string& text, float x, float y, float scale, const glm::vec4& color) const {
     m_text_renderer->draw(text, x, y, scale, color, m_proj);
+}
+
+void Renderer2D::draw_button(const Button& btn) const {
+    const glm::vec4 col = btn.hovered
+                              ? scenes::Colors::BtnBgHovered
+                              : scenes::Colors::BtnBgNormal;
+
+    draw_quad(btn.center, btn.size, col);
+    draw_rect_outline(btn.center, btn.size, scenes::Colors::BtnBorder, 0.04f);
+
+    const glm::vec4 text_col = btn.hovered
+                                   ? scenes::Colors::BtnTextHovered
+                                   : scenes::Colors::BtnTextNormal;
+    draw_text(btn.label, btn.center.x, btn.center.y, 0.5, text_col);
 }
 }

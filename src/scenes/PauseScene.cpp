@@ -4,6 +4,7 @@
 #include "game/DevSettings.hpp"
 #endif
 #include "renderer/Renderer2D.hpp"
+#include "renderer/Button.hpp"
 #include "scenes/Colors.hpp"
 #include "scenes/IScene.hpp"
 
@@ -68,16 +69,7 @@ void PauseScene::render(renderer::Renderer2D& r) const {
     r.draw_text("PAUSED", 0.0f, 2.3f, 1.3f, Colors::MainWhite);
 
     for (const auto& btn : m_buttons) {
-        const glm::vec4 col = btn.hovered
-                                ? Colors::BtnBgHovered
-                                : Colors::BtnBgNormal;
-        r.draw_quad(btn.center, btn.size, col);
-        r.draw_rect_outline(btn.center, btn.size, Colors::BtnBorder, 0.04f);
-
-        const glm::vec4 text_col = btn.hovered
-                               ? Colors::BtnTextHovered
-                               : Colors::BtnTextNormal;
-        r.draw_text(btn.label, btn.center.x, btn.center.y, 0.5f, text_col);
+        r.draw_button(btn);
     }
 }
 

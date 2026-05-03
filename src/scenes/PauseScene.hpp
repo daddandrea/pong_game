@@ -18,7 +18,7 @@ public:
 
 private:
     game::DevSettings& m_dev;
-    std::vector<Button> m_buttons;
+    std::vector<renderer::Button> m_buttons;
 
     static constexpr float BTN_W = 4.0f;
     static constexpr float BTN_H = 0.85f;

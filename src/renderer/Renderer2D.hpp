@@ -1,5 +1,6 @@
 #pragma once
 
+#include "renderer/Button.hpp"
 #include "scenes/SceneManager.hpp"
 
 #include <glm/glm.hpp>
@@ -35,6 +36,8 @@ public:
     void draw_rect_outline(const glm::vec2& pos, const glm::vec2& size, const glm::vec4& color, float thickness = DEFAULT_RECT_THICKNESS) const;
 
     void draw_text(const std::string& text, float x, float y, float scale, const glm::vec4& color) const;
+
+    void draw_button(const Button& button) const;
 
     const glm::mat4& projection() const { return m_proj; }
 

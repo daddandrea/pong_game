@@ -110,6 +110,7 @@ add_executable(Pong
     src/renderer/Buffer.cpp
     src/renderer/TextRenderer.cpp
     src/renderer/Renderer2D.cpp
+    src/renderer/Button.cpp
     src/game/Collider.cpp
     src/game/BallState.cpp
     src/game/PaddleState.cpp
