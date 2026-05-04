@@ -1,9 +1,7 @@
 #include "MultiPlayerMenuScene.hpp"
 #include "core/InputState.hpp"
-#include "game/GameConfig.hpp"
 #include "renderer/Renderer2D.hpp"
 #include "renderer/Button.hpp"
-#include "scenes/IScene.hpp"
 #include "scenes/Colors.hpp"
 #include <array>
 
@@ -54,12 +52,9 @@ std::string MultiPlayerMenuScene::update(const core::InputState& input, float dt
                 using enum game::PlayerType;
 
                 case MultiPlayerMenuItem::Local:
-                    m_config.left  = Human;
-                    m_config.right = Human;
-                    return Transition::Game;
+                    return Transition::LanMenu;
 
                 case MultiPlayerMenuItem::Online:
-                    m_config.left = Human;
                     return Transition::MatchMaking;
 
                 case MultiPlayerMenuItem::MainMenu:

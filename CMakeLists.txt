@@ -127,6 +127,9 @@ add_executable(Pong
     src/scenes/SinglePlayerMenuScene.cpp
     src/scenes/MultiPlayerMenuScene.cpp
     src/scenes/MatchMakingScene.cpp
+    src/scenes/LanMenuScene.cpp
+    src/scenes/LanHostScene.cpp
+    src/scenes/LanJoinScene.cpp
 )
 
 if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")

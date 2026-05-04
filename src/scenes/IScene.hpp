@@ -2,7 +2,6 @@
 
 #include "game/GameState.hpp"
 
-#include <glm/glm.hpp>
 #include <string>
 
 namespace core { struct InputState; }
@@ -22,6 +21,9 @@ inline constexpr const char* MainMenu     = "main_menu";
 inline constexpr const char* SinglePlayer = "single_player";
 inline constexpr const char* MultiPlayer  = "multi_player";
 
+inline constexpr const char* LanMenu      = "lan_menu";
+inline constexpr const char* LanHost      = "lan_host";
+inline constexpr const char* LanJoin      = "lan_join";
 inline constexpr const char* MatchMaking  = "match_making";
 
 inline constexpr const char* Pause        = "pause";

@@ -2,6 +2,9 @@
 
 #include "core/Exceptions.hpp"
 #include "core/Logger.hpp"
+#include "scenes/LanHostScene.hpp"
+#include "scenes/LanJoinScene.hpp"
+#include "scenes/LanMenuScene.hpp"
 #include "scenes/MatchMakingScene.hpp"
 #include "scenes/CreditsScene.hpp"
 #include "scenes/DevMenu.hpp"
@@ -123,8 +126,19 @@ Application::Application() {
                                     [&c = m_config] { return std::make_unique<scenes::MultiPlayerMenuScene>(c); }
     );
 
+    m_scene_manager->register_scene(Transition::LanMenu,
+                                    [&c = m_config] { return std::make_unique<scenes::LanMenuScene>(c); }
+    );
+
+    m_scene_manager->register_scene(Transition::LanHost,
+                                    [&c = m_config] { return std::make_unique<scenes::LanHostScene>(c); }
+    );
+
+    m_scene_manager->register_scene(Transition::LanJoin,
+                                    [&c = m_config] { return std::make_unique<scenes::LanJoinScene>(c); }
+    );
+
     m_scene_manager->register_scene(Transition::MatchMaking,
-                                    // [&c = m_config] { return std::make_unique<scenes::MatchMakingScene>(c); }
                                     [&c = m_config] { return std::make_unique<scenes::MatchMakingScene>(c); }
     );
 
@@ -225,7 +239,9 @@ void Application::run() {
                                   updater_status == Updater::Status::UpdateAvailable);
         const core::InputState scene_input = block_input ? core::InputState{} : m_input;
 
-        if (const std::string next = m_scene_manager->update(scene_input, dt); next == Transition::Quit) {
+        const std::string next = m_scene_manager->update(scene_input, dt);
+
+        if (next == Transition::Quit) {
             m_window.set_should_close(true);
             ImGui::EndFrame();
             return;
