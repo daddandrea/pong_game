@@ -1,8 +1,6 @@
 #include "CreditsScene.hpp"
-#include "core/InputState.hpp"
 #include "renderer/Renderer2D.hpp"
 #include "scenes/Colors.hpp"
-#include "scenes/IScene.hpp"
 
 namespace scenes {
 

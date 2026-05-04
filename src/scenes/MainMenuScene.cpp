@@ -1,10 +1,8 @@
 #include "MainMenuScene.hpp"
 #include "core/InputState.hpp"
-#include "game/GameConfig.hpp"
 #include "renderer/Renderer2D.hpp"
 #include "renderer/Button.hpp"
 #include "scenes/Colors.hpp"
-#include "scenes/IScene.hpp"
 #include <array>
 
 #ifndef PONG_VERSION

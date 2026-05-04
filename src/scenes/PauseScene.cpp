@@ -1,12 +1,8 @@
 #include "PauseScene.hpp"
 #include "core/InputState.hpp"
-#ifdef PONG_DEV
-#include "game/DevSettings.hpp"
-#endif
 #include "renderer/Renderer2D.hpp"
 #include "renderer/Button.hpp"
 #include "scenes/Colors.hpp"
-#include "scenes/IScene.hpp"
 
 namespace scenes {
 

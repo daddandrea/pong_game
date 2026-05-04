@@ -2,7 +2,7 @@
 
 #include "game/DevSettings.hpp"
 #include "scenes/IScene.hpp"
-#include "scenes/SceneManager.hpp"
+#include <vector>
 
 namespace scenes {
 

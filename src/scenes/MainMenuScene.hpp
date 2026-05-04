@@ -3,8 +3,6 @@
 #include "game/GameConfig.hpp"
 #include "scenes/IScene.hpp"
 
-#include <glm/glm.hpp>
-
 #include <string>
 #include <vector>
 
