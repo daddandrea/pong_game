@@ -124,6 +124,8 @@ add_executable(Pong
     third_party/stb_vorbis.cpp
     src/core/AudioManager.cpp
     src/core/Updater.cpp
+    src/core/PlayerInput.cpp
+    src/core/InputBinding.cpp
     src/scenes/SinglePlayerMenuScene.cpp
     src/scenes/MultiPlayerMenuScene.cpp
     src/scenes/MatchMakingScene.cpp

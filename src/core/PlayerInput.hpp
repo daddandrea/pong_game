@@ -24,11 +24,12 @@ std::optional<std::string_view>  action_to_string(PlayerAction action);
 std::optional<PlayerAction>      string_to_action(std::string_view name);
 
 struct PlayerInput {
-    bool up;
-    bool down;
-    bool parry;
-    bool confirm;
-    bool back;
+    bool  up;
+    bool  down;
+    bool  parry;
+    bool  confirm;
+    bool  back;
+    float move; // -1.0 to 1.0
 };
 
 }
