@@ -1,6 +1,7 @@
 #include "Application.hpp"
 
 #include "core/Exceptions.hpp"
+#include "core/FrameInput.hpp"
 #include "core/Logger.hpp"
 #include "scenes/LanHostScene.hpp"
 #include "scenes/LanJoinScene.hpp"
@@ -24,7 +25,6 @@
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_filesystem.h>
 #include <SDL3/SDL_keycode.h>
-#include <SDL3/SDL_mouse.h>
 #include <SDL3_ttf/SDL_ttf.h>
 
 #include <filesystem>
@@ -34,45 +34,6 @@
 #include <chrono>
 
 namespace core {
-
-static float px_to_world_x(float px, float win_w) {
-    return (px / win_w) * WORLD_W - (WORLD_W * 0.5f);
-}
-
-static float py_to_world_y(float py, float win_h) {
-    return (WORLD_H * 0.5f) - (py / win_h) * WORLD_H;
-}
-
-/**
- * @brief Map an SDL key symbol to Key enum index
- * @param key SDL keycode
- * @return matching Key enum index
- * @return -1 if unmapped
- */
-static int sdl_key_to_index(SDL_Keycode key) {
-    using enum core::Key;
-
-    switch (key) {
-    case SDLK_W:
-        return static_cast<int>(Key::W);
-    case SDLK_S:
-        return static_cast<int>(Key::S);
-    case SDLK_UP:
-        return static_cast<int>(Key::Up);
-    case SDLK_DOWN:
-        return static_cast<int>(Key::Down);
-    case SDLK_SPACE:
-        return static_cast<int>(Key::Space);
-    case SDLK_RETURN:
-        return static_cast<int>(Key::Enter);
-    case SDLK_ESCAPE:
-        return static_cast<int>(Key::Escape);
-    case SDLK_F1:
-        return static_cast<int>(Key::F1);
-    default:
-        return -1;
-    }
-}
 
 static std::string find_font() {
     if (const char* base = SDL_GetBasePath()) {
@@ -110,7 +71,9 @@ Application::Application() {
     int fb_h;
 
     SDL_GetWindowSizeInPixels(m_window.get_sdl_window(), &fb_w, &fb_h);
-    m_renderer->load_font(m_font_path, 3.0f * static_cast<float>(fb_h) / WORLD_H);
+    m_renderer->load_font(m_font_path, fb_h);
+    m_input_manager.set_window_size(static_cast<float>(m_window.get_width()),
+                                    static_cast<float>(m_window.get_height()));
 
     m_scene_manager = std::make_unique<scenes::SceneManager>();
 
@@ -167,7 +130,7 @@ Application::Application() {
 }
 
 bool Application::init() {
-    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
+    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMEPAD)) {
         Log::error("SDL_Init failed: {}", SDL_GetError());
         return false;
     }
@@ -224,7 +187,7 @@ void Application::run() {
         if (dt > MAX_DT)
             dt = MAX_DT;
 
-        clear_frame_state();
+        m_input_manager.clear_frame_state();
         process_events();
 
         if (m_window.should_close())
@@ -237,9 +200,9 @@ void Application::run() {
         const auto updater_status = m_updater.status();
         const bool block_input = (updater_status == Updater::Status::Checking ||
                                   updater_status == Updater::Status::UpdateAvailable);
-        const core::InputState scene_input = block_input ? core::InputState{} : m_input;
+        const core::FrameInput frame = block_input ? core::FrameInput{} : m_input_manager.frame_input();
 
-        const std::string next = m_scene_manager->update(scene_input, dt);
+        const std::string next = m_scene_manager->update(frame, dt);
 
         if (next == Transition::Quit) {
             m_window.set_should_close(true);
@@ -281,80 +244,43 @@ void Application::run() {
     }
 }
 
-void Application::clear_frame_state() {
-    m_input.pressed.fill(false);
-    m_input.released.fill(false);
-    m_input.mouse.left_pressed = false;
-    m_input.mouse.left_released = false;
-}
-
 void Application::process_events() {
-    const auto win_w = static_cast<float>(m_window.get_width());
-    const auto win_h = static_cast<float>(m_window.get_height());
-
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         ImGui_ImplSDL3_ProcessEvent(&event);
-        switch (event.type) {
-            case SDL_EVENT_QUIT:
-                m_window.set_should_close(true);
-                break;
 
-            case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED: {
-                const int w = event.window.data1;
-                const int h = event.window.data2;
-                glViewport(0, 0, w, h);
-                m_renderer->load_font(m_font_path, 3.0f * static_cast<float>(h) / WORLD_H);
-                break;
-            }
+        if (event.type == SDL_EVENT_QUIT) {
+            m_window.set_should_close(true);
+            continue;
+        }
 
-            case SDL_EVENT_KEY_DOWN: {
-                if (const int idx = sdl_key_to_index(event.key.key); idx != -1) {
-                    m_input.held[idx] = true;
-                    m_input.pressed[idx] = true;
-                    m_input.released[idx] = false;
-                }
-                break;
-            }
+#ifdef PONG_DEV
+        if (event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_F1) {
+            m_dev.show_dev = !m_dev.show_dev;
+            continue;
+        }
+#endif
 
-            case SDL_EVENT_KEY_UP: {
-                if (const int idx = sdl_key_to_index(event.key.key); idx != -1) {
-                    m_input.held[idx] = false;
-                    m_input.pressed[idx] = false;
-                    m_input.released[idx] = true;
-                }
-                break;
-            }
+        if (event.type == SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED) {
+            const int w = event.window.data1;
+            const int h = event.window.data2;
+            glViewport(0, 0, w, h);
+            m_renderer->load_font(m_font_path, h);
+            continue;
+        }
 
-            case SDL_EVENT_MOUSE_MOTION:
-                if (!ImGui::GetIO().WantCaptureMouse) {
-                    m_input.mouse.x = px_to_world_x(event.motion.x, win_w);
-                    m_input.mouse.y = py_to_world_y(event.motion.y, win_h);
-                }
-                break;
+        if (event.type == SDL_EVENT_WINDOW_RESIZED) {
+            m_input_manager.set_window_size(static_cast<float>(event.window.data1),
+                                            static_cast<float>(event.window.data2));
+            continue;
+        }
 
-            case SDL_EVENT_MOUSE_BUTTON_DOWN:
-                if (event.button.button == SDL_BUTTON_LEFT
-                    && !ImGui::GetIO().WantCaptureMouse) {
-                    m_input.mouse.x = px_to_world_x(event.motion.x, win_w);
-                    m_input.mouse.y = py_to_world_y(event.motion.y, win_h);
-                    m_input.mouse.left_held = true;
-                    m_input.mouse.left_pressed = true;
-                    m_input.mouse.left_released = false;
-                }
-                break;
+        const bool is_mouse_event = (event.type == SDL_EVENT_MOUSE_MOTION      ||
+                                     event.type == SDL_EVENT_MOUSE_BUTTON_DOWN ||
+                                     event.type == SDL_EVENT_MOUSE_BUTTON_UP);
 
-            case SDL_EVENT_MOUSE_BUTTON_UP:
-                if (event.button.button == SDL_BUTTON_LEFT
-                    && !ImGui::GetIO().WantCaptureMouse) {
-                    m_input.mouse.left_held = true;
-                    m_input.mouse.left_pressed = false;
-                    m_input.mouse.left_released = true;
-                }
-                break;
-
-            default:
-                break;
+        if (!is_mouse_event || !ImGui::GetIO().WantCaptureMouse) {
+            m_input_manager.handle_event(event);
         }
     }
 }

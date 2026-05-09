@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core/AudioManager.hpp"
-#include "core/InputState.hpp"
+#include "core/InputManager.hpp"
 #include "core/Updater.hpp"
 #include "core/Window.hpp"
 #include "game/DevSettings.hpp"
@@ -15,9 +15,6 @@ namespace scenes   { class SceneManager; }
 namespace renderer { class Renderer; }
 
 namespace core {
-
-static constexpr float WORLD_W = 20.0f;
-static constexpr float WORLD_H = 12.0f;
 
 static constexpr int WIN_W = 1280;
 static constexpr int WIN_H = 720;
@@ -42,12 +39,11 @@ public:
     static void quit();
 
 private:
-    void clear_frame_state();
     void process_events();
     void dismiss_overlay_if_game_over();
 
     Window m_window = Window("Pong", WIN_W, WIN_H);
-    InputState m_input;
+    InputManager m_input_manager;
     std::string m_font_path;
 
     AudioManager m_audio;
