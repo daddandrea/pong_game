@@ -1,9 +1,7 @@
 #include "MainMenuScene.hpp"
-#include "core/InputState.hpp"
 #include "renderer/Renderer2D.hpp"
 #include "renderer/Button.hpp"
 #include "scenes/Colors.hpp"
-#include <array>
 
 #ifndef PONG_VERSION
 #define PONG_VERSION "0.0.0"
@@ -16,56 +14,73 @@ MainMenuScene::MainMenuScene(game::GameConfig& config)
     : m_config(config) {
 
     using enum MainMenuItem;
-
-    struct Entry {
-        MainMenuItem item;
-        const char* label;
-        float y;
-    };
-
-    const std::array entries = {
-        Entry{SinglePlayer, "Singleplayer",     1.2f},
-        Entry{MultiPlayer,  "Multiplayer",  0.0f},
-        Entry{Credits,      "Credits",          -1.2f},
-        Entry{Quit,         "Quit",             -2.6f},
-    };
-
-    for (const auto& e : entries) {
-        m_buttons.push_back({static_cast<int>(e.item), e.label, {0.0f, e.y}, {BTN_W, BTN_H}});
-    }
+    m_buttons.push_back({static_cast<int>(SinglePlayer), "Singleplayer", {0.0f,  1.2f}, {renderer::Button::DEFAULT_W, renderer::Button::DEFAULT_H}});
+    m_buttons.push_back({static_cast<int>(MultiPlayer),  "Multiplayer",  {0.0f,  0.0f}, {renderer::Button::DEFAULT_W, renderer::Button::DEFAULT_H}});
+    m_buttons.push_back({static_cast<int>(Credits),      "Credits",      {0.0f, -1.2f}, {renderer::Button::DEFAULT_W, renderer::Button::DEFAULT_H}});
+    m_buttons.push_back({static_cast<int>(Quit),         "Quit",         {0.0f, -2.6f}, {renderer::Button::DEFAULT_W, renderer::Button::DEFAULT_H}});
 }
 
-std::string MainMenuScene::update(const core::InputState& input, float dt) {
+std::string MainMenuScene::update(const core::FrameInput& input, float dt) {
     (void)dt;
+    const int n   = static_cast<int>(m_buttons.size());
+    const auto& p = input.players[0];
 
-    for (auto& btn : m_buttons) {
-        btn.hovered = btn.contains( {input.mouse.x, input.mouse.y} );
+    int sel = -1;
+    for (int i = 0; i < n; ++i) if (m_buttons[i].selected) { sel = i; break; }
+
+    if (sel == -1) {
+        if (p.nav_up || p.nav_down) {
+            m_buttons[0].selected = true;
+            sel = 0;
+        }
+    } else {
+        if (p.nav_up) {
+            m_buttons[sel].selected = false;
+            sel = (sel - 1 + n) % n;
+            m_buttons[sel].selected = true;
+        }
+        if (p.nav_down) {
+            m_buttons[sel].selected = false;
+            sel = (sel + 1) % n;
+            m_buttons[sel].selected = true;
+        }
     }
 
-    if (input.mouse.left_pressed) {
-        for (const auto& btn : m_buttons) {
-            if (!btn.hovered) continue;
-
-            switch (static_cast<MainMenuItem>(btn.item)) {
-                using enum game::PlayerType;
-
-                case MainMenuItem::SinglePlayer:
-                    return Transition::SinglePlayer;
-
-                case MainMenuItem::MultiPlayer:
-                    return Transition::MultiPlayer;
-
-                case MainMenuItem::Credits:
-                    return Transition::Credits;
-
-                case MainMenuItem::Quit:
-                    return Transition::Quit;
-
+    if (input.mouse.moved) {
+        for (int i = 0; i < n; ++i) {
+            if (m_buttons[i].contains({input.mouse.x, input.mouse.y})) {
+                if (sel >= 0) m_buttons[sel].selected = false;
+                m_buttons[i].selected = true;
+                sel = i;
             }
         }
     }
 
-    if (input.is_pressed(core::Key::Escape)) return Transition::Quit;
+    for (int i = 0; i < n; ++i) m_buttons[i].hovered = m_buttons[i].selected;
+
+    auto activate = [&](int idx) -> std::string {
+        switch (static_cast<MainMenuItem>(m_buttons[idx].item)) {
+            case MainMenuItem::SinglePlayer: return Transition::SinglePlayer;
+            case MainMenuItem::MultiPlayer:  return Transition::MultiPlayer;
+            case MainMenuItem::Credits:      return Transition::Credits;
+            case MainMenuItem::Quit:         return Transition::Quit;
+        }
+        return Transition::Stay;
+    };
+
+    if (p.confirm && sel >= 0) return activate(sel);
+
+    if (input.mouse.left_pressed) {
+        for (int i = 0; i < n; ++i) {
+            if (m_buttons[i].contains({input.mouse.x, input.mouse.y})) {
+                if (sel >= 0) m_buttons[sel].selected = false;
+                m_buttons[i].selected = true;
+                return activate(i);
+            }
+        }
+    }
+
+    if (p.back) return Transition::Quit;
 
     return Transition::Stay;
 }

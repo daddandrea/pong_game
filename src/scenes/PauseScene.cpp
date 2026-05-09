@@ -1,5 +1,4 @@
 #include "PauseScene.hpp"
-#include "core/InputState.hpp"
 #include "renderer/Renderer2D.hpp"
 #include "renderer/Button.hpp"
 #include "scenes/Colors.hpp"
@@ -13,42 +12,79 @@ PauseScene::PauseScene(game::DevSettings& dev_settings)
         static_cast<int>(PauseItem::Resume),
         "Resume",
         {0.0f, 0.6f},
-        {BTN_W, BTN_H}
+        {renderer::Button::PAUSE_W, renderer::Button::PAUSE_H}
     });
     m_buttons.push_back({
         static_cast<int>(PauseItem::MainMenu),
         "Main Menu",
         {0.0f,-0.6f},
-        {BTN_W, BTN_H}
+        {renderer::Button::PAUSE_W, renderer::Button::PAUSE_H}
     });
     m_buttons.push_back({
         static_cast<int>(PauseItem::Quit),
         "Quit",
         {0.0f,-1.8f},
-        {BTN_W, BTN_H}
+        {renderer::Button::PAUSE_W, renderer::Button::PAUSE_H}
     });
 }
 
-std::string PauseScene::update(const core::InputState& input, float dt) {
+std::string PauseScene::update(const core::FrameInput& input, float dt) {
     (void)dt;
+    const int n   = static_cast<int>(m_buttons.size());
+    const auto& p = input.players[0];
 
-    if (input.is_pressed(core::Key::Escape)) return Transition::Pop;
-#ifdef PONG_DEV
-    if (input.is_pressed(core::Key::F1)) m_dev.show_dev = !m_dev.show_dev;
-#endif
+    if (p.back) return Transition::Pop;
 
-    for (auto& btn : m_buttons) {
-        btn.hovered = btn.contains({input.mouse.x, input.mouse.y});
+    int sel = -1;
+    for (int i = 0; i < n; ++i) if (m_buttons[i].selected) { sel = i; break; }
+
+    if (sel == -1) {
+        if (p.nav_up || p.nav_down) {
+            m_buttons[0].selected = true;
+            sel = 0;
+        }
+    } else {
+        if (p.nav_up) {
+            m_buttons[sel].selected = false;
+            sel = (sel - 1 + n) % n;
+            m_buttons[sel].selected = true;
+        }
+        if (p.nav_down) {
+            m_buttons[sel].selected = false;
+            sel = (sel + 1) % n;
+            m_buttons[sel].selected = true;
+        }
     }
 
-    if (input.mouse.left_pressed) {
-        for (const auto& btn : m_buttons) {
-            if (!btn.hovered) continue;
+    if (input.mouse.moved) {
+        for (int i = 0; i < n; ++i) {
+            if (m_buttons[i].contains({input.mouse.x, input.mouse.y})) {
+                if (sel >= 0) m_buttons[sel].selected = false;
+                m_buttons[i].selected = true;
+                sel = i;
+            }
+        }
+    }
 
-            switch (static_cast<PauseItem>(btn.item)) {
-                case PauseItem::Resume:   return Transition::Pop;
-                case PauseItem::MainMenu: return Transition::MainMenu;
-                case PauseItem::Quit:     return Transition::Quit;
+    for (int i = 0; i < n; ++i) m_buttons[i].hovered = m_buttons[i].selected;
+
+    auto activate = [&](int idx) -> std::string {
+        switch (static_cast<PauseItem>(m_buttons[idx].item)) {
+            case PauseItem::Resume:   return Transition::Pop;
+            case PauseItem::MainMenu: return Transition::MainMenu;
+            case PauseItem::Quit:     return Transition::Quit;
+        }
+        return Transition::Stay;
+    };
+
+    if (p.confirm && sel >= 0) return activate(sel);
+
+    if (input.mouse.left_pressed) {
+        for (int i = 0; i < n; ++i) {
+            if (m_buttons[i].contains({input.mouse.x, input.mouse.y})) {
+                if (sel >= 0) m_buttons[sel].selected = false;
+                m_buttons[i].selected = true;
+                return activate(i);
             }
         }
     }

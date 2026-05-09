@@ -1,54 +1,58 @@
 #include "MatchMakingScene.hpp"
 #include "renderer/Renderer2D.hpp"
-#include "scenes/Colors.hpp"
 #include "renderer/Button.hpp"
-#include <array>
+#include "scenes/Colors.hpp"
+
+#ifndef PONG_VERSION
+#define PONG_VERSION "0.0.0"
+#endif
 
 namespace scenes {
 
 MatchMakingScene::MatchMakingScene(game::GameConfig& config)
     : m_config(config) {
 
-    using enum MatchMakingMenuItem;
-
-    struct Entry {
-        MatchMakingMenuItem item;
-        const char* label;
-        float y;
-    };
-
-    const std::array entries = {
-        Entry{Cancel, "Cancel", 0.0f}
-    };
-
-    for (const auto& e : entries) {
-        m_buttons.push_back({
-            static_cast<int>(e.item),
-            e.label,
-            {0.0f, e.y},
-            {BTN_W, BTN_H}
-        });
-    }
-
+    m_buttons.push_back({static_cast<int>(MatchMakingMenuItem::Cancel), "Cancel", {0.0f, 0.0f}, {renderer::Button::DEFAULT_W, renderer::Button::DEFAULT_H}});
 }
 
-std::string MatchMakingScene::update(const core::InputState &input, float dt) {
+std::string MatchMakingScene::update(const core::FrameInput& input, float dt) {
     (void)dt;
+    const int n   = static_cast<int>(m_buttons.size());
+    const auto& p = input.players[0];
 
-    for (auto& btn : m_buttons) {
-        btn.hovered = btn.contains({input.mouse.x, input.mouse.y});
+    int sel = -1;
+    for (int i = 0; i < n; ++i) if (m_buttons[i].selected) { sel = i; break; }
+
+    if (sel == -1) {
+        if (p.nav_up || p.nav_down) {
+            m_buttons[0].selected = true;
+            sel = 0;
+        }
     }
 
+    if (input.mouse.moved) {
+        for (int i = 0; i < n; ++i) {
+            if (m_buttons[i].contains({input.mouse.x, input.mouse.y})) {
+                if (sel >= 0) m_buttons[sel].selected = false;
+                m_buttons[i].selected = true;
+                sel = i;
+            }
+        }
+    }
+
+    for (int i = 0; i < n; ++i) m_buttons[i].hovered = m_buttons[i].selected;
+
+    if (p.confirm && sel >= 0) return Transition::MainMenu;
+
     if (input.mouse.left_pressed) {
-        for (const auto& btn : m_buttons) {
-
-            if (!btn.hovered) continue;
-
-            if (static_cast<MatchMakingMenuItem>(btn.item) == MatchMakingMenuItem::Cancel) {
+        for (int i = 0; i < n; ++i) {
+            if (m_buttons[i].contains({input.mouse.x, input.mouse.y})) {
                 return Transition::MainMenu;
             }
         }
     }
+
+    if (p.back) return Transition::MainMenu;
 
     return Transition::Stay;
 }
