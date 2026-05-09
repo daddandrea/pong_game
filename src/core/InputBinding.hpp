@@ -10,9 +10,11 @@
 
 namespace core {
 
+enum class AxisDir { Up, Down };
+
 struct AxisBinding {
     SDL_GamepadAxis axis;
-    bool            positive; // true = down/right, false = up/left
+    AxisDir         dir;
 
     bool operator==(const AxisBinding&) const = default;
 };
@@ -21,11 +23,17 @@ using ActionBinding = std::variant<SDL_Keycode, SDL_GamepadButton, AxisBinding>;
 
 class InputBinding {
 public:
+    static InputBinding player1_defaults();
+    static InputBinding player2_defaults();
+
     static InputBinding player1_kb_defaults();
     static InputBinding player2_kb_defaults();
 
     static InputBinding player1_gp_defaults();
     static InputBinding player2_gp_defaults();
+
+    bool empty() const;
+    void merge(const InputBinding& other);
 
     void bind(PlayerAction action, SDL_Keycode key);
     void bind(PlayerAction action, SDL_GamepadButton button);

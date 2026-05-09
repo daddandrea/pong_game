@@ -17,6 +17,18 @@ static size_t idx(PlayerAction a) {
     return static_cast<size_t>(a);
 }
 
+InputBinding InputBinding::player1_defaults() {
+    InputBinding b = player1_kb_defaults();
+    b.merge(player1_gp_defaults());
+    return b;
+}
+
+InputBinding InputBinding::player2_defaults() {
+    InputBinding b = player2_kb_defaults();
+    b.merge(player2_gp_defaults());
+    return b;
+}
+
 InputBinding InputBinding::player1_kb_defaults() {
     using enum PlayerAction;
 
@@ -46,7 +58,9 @@ InputBinding InputBinding::player1_gp_defaults() {
 
     InputBinding b;
     b.bind(Up,      SDL_GAMEPAD_BUTTON_DPAD_UP);
+    b.bind(Up,      AxisBinding{SDL_GAMEPAD_AXIS_LEFTY, AxisDir::Up});
     b.bind(Down,    SDL_GAMEPAD_BUTTON_DPAD_DOWN);
+    b.bind(Down,    AxisBinding{SDL_GAMEPAD_AXIS_LEFTY, AxisDir::Down});
     b.bind(Parry,   SDL_GAMEPAD_BUTTON_SOUTH);
     b.bind(Confirm, SDL_GAMEPAD_BUTTON_SOUTH);
     b.bind(Back,    SDL_GAMEPAD_BUTTON_EAST);
@@ -58,11 +72,32 @@ InputBinding InputBinding::player2_gp_defaults() {
 
     InputBinding b;
     b.bind(Up,      SDL_GAMEPAD_BUTTON_DPAD_UP);
+    b.bind(Up,      AxisBinding{SDL_GAMEPAD_AXIS_LEFTY, AxisDir::Up});
     b.bind(Down,    SDL_GAMEPAD_BUTTON_DPAD_DOWN);
+    b.bind(Down,    AxisBinding{SDL_GAMEPAD_AXIS_LEFTY, AxisDir::Down});
     b.bind(Parry,   SDL_GAMEPAD_BUTTON_SOUTH);
     b.bind(Confirm, SDL_GAMEPAD_BUTTON_SOUTH);
     b.bind(Back,    SDL_GAMEPAD_BUTTON_EAST);
     return b;
+}
+
+void InputBinding::merge(const InputBinding& other) {
+    for (size_t i = 0; i < m_bindings.size(); ++i) {
+        for (const auto& b : other.m_bindings[i]) {
+            if (std::ranges::find(m_bindings[i], b) == m_bindings[i].end()) {
+                m_bindings[i].push_back(b);
+            }
+        }
+    }
+}
+
+bool InputBinding::empty() const {
+    return std::ranges::all_of(
+        m_bindings,
+        [](const auto& slot) {
+            return slot.empty();
+        }
+    );
 }
 
 void InputBinding::bind(PlayerAction action, SDL_Keycode key) {
@@ -132,8 +167,8 @@ float InputBinding::axis_float(PlayerAction action, SDL_Gamepad* gamepad, float 
     for (const auto& b : m_bindings[idx(action)]) {
         if (const auto* a = std::get_if<AxisBinding>(&b); a && gamepad) {
             const float v = SDL_GetGamepadAxis(gamepad, a->axis) * axis_scale;
-            if (a->positive  && v >  deadzone) return  v;
-            if (!a->positive && v < -deadzone) return -v;
+            if (a->dir == AxisDir::Down && v >  deadzone) return  v;
+            if (a->dir == AxisDir::Up   && v < -deadzone) return -v;
         }
     }
     return 0.0f;
@@ -154,8 +189,8 @@ bool InputBinding::held(PlayerAction action, const bool* keys, SDL_Gamepad* game
 
         if (const auto* a = std::get_if<AxisBinding>(&b); a && gamepad) {
             const float v = SDL_GetGamepadAxis(gamepad, a->axis) * axis_scale;
-            if (a->positive  && v >  deadzone) return true;
-            if (!a->positive && v < -deadzone) return true;
+            if (a->dir == AxisDir::Down && v >  deadzone) return true;
+            if (a->dir == AxisDir::Up   && v < -deadzone) return true;
         }
     }
     return false;
@@ -186,26 +221,28 @@ PlayerInput InputBinding::resolve(SDL_Gamepad* gamepad, const InputSettings& set
     const float up_f = axis_float(Up, gamepad, deadzone, axis_scale);
     const float dn_f = axis_float(Down, gamepad, deadzone, axis_scale);
 
-    float move = up_f - dn_f;
+    float move = dn_f - up_f;
     if (move == 0.0f) {
         if (up)   move = -1.0f;
         if (down) move =  1.0f;
     }
 
     return {
-        .up      = up,
-        .down    = down,
-        .parry   = just_pressed(PlayerAction::Parry,   keys, gamepad, deadzone, axis_scale),
-        .confirm = just_pressed(PlayerAction::Confirm, keys, gamepad, deadzone, axis_scale),
-        .back    = just_pressed(PlayerAction::Back,    keys, gamepad, deadzone, axis_scale),
-        .move    = move,
+        .up       = up,
+        .down     = down,
+        .nav_up   = just_pressed(PlayerAction::Up,      keys, gamepad, deadzone, axis_scale),
+        .nav_down = just_pressed(PlayerAction::Down,    keys, gamepad, deadzone, axis_scale),
+        .parry    = just_pressed(PlayerAction::Parry,   keys, gamepad, deadzone, axis_scale),
+        .confirm  = just_pressed(PlayerAction::Confirm, keys, gamepad, deadzone, axis_scale),
+        .back     = just_pressed(PlayerAction::Back,    keys, gamepad, deadzone, axis_scale),
+        .move     = move,
     };
 }
 
 void InputBinding::save(const std::string& path, int player_index) const {
     std::ofstream file(path);
 
-    for (size_t i = 0; i < static_cast<int>(PlayerAction::COUNT); ++i) {
+    for (size_t i = 0; i < static_cast<size_t>(PlayerAction::COUNT); ++i) {
         const auto action = static_cast<PlayerAction>(i);
         const auto name   = action_to_string(action);
 
@@ -228,6 +265,9 @@ void InputBinding::save(const std::string& path, int player_index) const {
                     else if constexpr (std::is_same_v<T, SDL_GamepadButton>) {
                         file << "button:" << SDL_GetGamepadStringForButton(binding);
                     }
+                    else if constexpr (std::is_same_v<T, AxisBinding>) {
+                        file << "axis:" << SDL_GetGamepadStringForAxis(binding.axis) << (binding.dir == AxisDir::Down ? "+" : "-");
+                    }
                 },
                 b
             );
@@ -244,12 +284,23 @@ void InputBinding::save(const std::string& path, int player_index) const {
 static void bind_action_from_file(InputBinding& b, std::string_view type, PlayerAction action, std::string_view value) {
     if (type == "key") {
         const SDL_Keycode key = SDL_GetKeyFromName(std::string(value).c_str());
-        if (key != SDLK_UNKNOWN)
+        if (key != SDLK_UNKNOWN) 
             b.bind(action, key);
+
     } else if (type == "button") {
         const SDL_GamepadButton btn = SDL_GetGamepadButtonFromString(std::string(value).c_str());
         if (btn != SDL_GAMEPAD_BUTTON_INVALID)
             b.bind(action, btn);
+
+    } else if (type == "axis") {
+        if (value.empty()) return;
+
+        const AxisDir dir        = (value.back() == '+') ? AxisDir::Down : AxisDir::Up;
+        const auto axis_name     = std::string(value.substr(0, value.size() - 1));
+        const SDL_GamepadAxis ax = SDL_GetGamepadAxisFromString(axis_name.c_str());
+
+        if (ax != SDL_GAMEPAD_AXIS_INVALID)
+            b.bind(action, AxisBinding{ax, dir});
     }
 }
 
