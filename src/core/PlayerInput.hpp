@@ -26,6 +26,8 @@ std::optional<PlayerAction>      string_to_action(std::string_view name);
 struct PlayerInput {
     bool  up;
     bool  down;
+    bool  nav_up;
+    bool  nav_down;
     bool  parry;
     bool  confirm;
     bool  back;

@@ -19,9 +19,10 @@ enum class Key {
 struct MouseState {
     float x = 0.0f;
     float y = 0.0f;
-    bool left_pressed = false;
-    bool left_held = false;
+    bool left_pressed  = false;
+    bool left_held     = false;
     bool left_released = false;
+    bool moved         = false;
 };
 
 struct InputState {

@@ -126,6 +126,7 @@ add_executable(Pong
     src/core/Updater.cpp
     src/core/PlayerInput.cpp
     src/core/InputBinding.cpp
+    src/core/InputManager.cpp
     src/scenes/SinglePlayerMenuScene.cpp
     src/scenes/MultiPlayerMenuScene.cpp
     src/scenes/MatchMakingScene.cpp
