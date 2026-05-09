@@ -27,7 +27,7 @@ public:
     Renderer2D(const Renderer2D&) = delete;
     Renderer2D& operator=(const Renderer2D&) = delete;
 
-    void load_font(const std::string& path, float size_px = DEFAULT_FONT_SIZE);
+    void load_font(const std::string& path, int fb_h);
 
     void draw_quad(const glm::vec2& pos, const glm::vec2& size, const glm::vec4& color) const;
 

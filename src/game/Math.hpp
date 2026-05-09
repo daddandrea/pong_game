@@ -4,8 +4,11 @@
 
 namespace game {
 
-inline constexpr float     ARENA_HALF_W         = 10.0f;
-inline constexpr float     ARENA_HALF_H         = 6.0f;
+inline constexpr float     ARENA_W              = 20.0f;
+inline constexpr float     ARENA_H              = 12.0f;
+
+inline constexpr float     ARENA_HALF_W         = ARENA_W * 0.5f;
+inline constexpr float     ARENA_HALF_H         = ARENA_H * 0.5f;
 inline constexpr float     ARENA_LEFT           = -ARENA_HALF_W;
 inline constexpr float     ARENA_RIGHT          = ARENA_HALF_W;
 inline constexpr float     ARENA_TOP            = ARENA_HALF_H;

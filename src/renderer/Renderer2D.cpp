@@ -1,4 +1,5 @@
 #include "Renderer2D.hpp"
+#include "game/Math.hpp"
 #include "glm/ext/vector_float4.hpp"
 #include "renderer/Buffer.hpp"
 #include "renderer/Shader.hpp"
@@ -57,7 +58,8 @@ Renderer2D::Renderer2D() {
 
 Renderer2D::~Renderer2D() = default;
 
-void Renderer2D::load_font(const std::string& path, float size_px) {
+void Renderer2D::load_font(const std::string& path, int fb_h) {
+    const float size_px = 3.0f * static_cast<float>(fb_h) / game::ARENA_H;
     m_text_renderer->load_font(path, size_px);
 }
 
