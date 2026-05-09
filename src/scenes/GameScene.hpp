@@ -1,6 +1,5 @@
 #pragma once
 
-#include "core/InputState.hpp"
 #include "game/BallState.hpp"
 #include "game/CpuController.hpp"
 #include "game/DevSettings.hpp"
@@ -18,7 +17,7 @@ public:
     GameScene(game::GameSettings& settings, game::GameConfig& config, game::DevSettings& dev);
 
     void on_enter() override;
-    std::string update(const core::InputState& input, float dt) override;
+    std::string update(const core::FrameInput& input, float dt) override;
     void render(renderer::Renderer2D& r) const override;
     game::GameState* get_game_state() override { return &m_game_state; };
 
@@ -44,8 +43,8 @@ private:
     bool m_ball_goes_right = true;
 
     void reset_round(bool ball_goes_right);
-    void handle_paddle_movement(const core::InputState& input, float dt);
-    void handle_ball_physics(const core::InputState& input, float dt);
+    void handle_paddle_movement(const core::FrameInput& input, float dt);
+    void handle_ball_physics(const core::FrameInput& input, float dt);
     void handle_scoring();
 };
 

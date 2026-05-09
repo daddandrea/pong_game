@@ -1,6 +1,5 @@
 #include "SceneManager.hpp"
 #include "IScene.hpp"
-#include "core/InputState.hpp"
 #include <stdexcept>
 
 namespace scenes {
@@ -51,7 +50,7 @@ void SceneManager::clear_stack() {
     }
 }
 
-std::string SceneManager::update(const core::InputState& input, float dt) {
+std::string SceneManager::update(const core::FrameInput& input, float dt) {
     if (m_stack.empty()) return Transition::Quit;
 
     const std::string transition = m_stack.back()->update(input, dt);

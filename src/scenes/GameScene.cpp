@@ -1,6 +1,5 @@
 #include "GameScene.hpp"
 #include "core/AudioManager.hpp"
-#include "core/InputState.hpp"
 #include "game/Math.hpp"
 #include "game/Physics.hpp"
 #include "renderer/Renderer2D.hpp"
@@ -43,13 +42,11 @@ void GameScene::reset_round(bool ball_goes_right) {
     m_timer = COUNTDOWN_TIME;
 }
 
-void GameScene::handle_paddle_movement(const core::InputState& input, float dt) {
-    using enum core::Key;
-
-    const bool left_up    = input.is_held(W);
-    const bool left_down  = input.is_held(S);
-    const bool right_down = input.is_held(Down);
-    const bool right_up   = input.is_held(Up);
+void GameScene::handle_paddle_movement(const core::FrameInput& input, float dt) {
+    const bool left_up    = input.players[0].up;
+    const bool left_down  = input.players[0].down;
+    const bool right_up   = input.players[1].up;
+    const bool right_down = input.players[1].down;
 
     if (m_local_config.left == game::PlayerType::Human) {
         m_left_paddle.update(dt, left_up, left_down, m_settings);
@@ -64,9 +61,9 @@ void GameScene::handle_paddle_movement(const core::InputState& input, float dt) 
     }
 }
 
-void GameScene::handle_ball_physics(const core::InputState& input, float dt) {
-    const bool left_parry_key  = input.is_pressed(core::Key::Space);
-    const bool right_parry_key = input.is_pressed(core::Key::Enter);
+void GameScene::handle_ball_physics(const core::FrameInput& input, float dt) {
+    const bool left_parry_key  = input.players[0].parry;
+    const bool right_parry_key = input.players[1].parry;
 
     m_ball.update(dt);
     if (game::handle_wall_bounce(m_ball, m_settings))
@@ -112,13 +109,8 @@ void GameScene::handle_scoring() {
     }
 }
 
-std::string GameScene::update(const core::InputState& input, float dt) {
-    using namespace core;
-
-    if (input.is_pressed(Key::Escape)) return Transition::Push(Transition::Pause);
-#ifdef PONG_DEV
-    if (input.is_pressed(Key::F1)) m_dev.show_dev = !m_dev.show_dev;
-#endif
+std::string GameScene::update(const core::FrameInput& input, float dt) {
+    if (input.players[0].back) return Transition::Push(Transition::Pause);
 
     switch (m_game_state.phase) {
         using enum game::GamePhase;
@@ -146,7 +138,7 @@ std::string GameScene::update(const core::InputState& input, float dt) {
             break;
 
         case GameOver:
-            if (input.is_pressed(Key::Space) || input.is_pressed(Key::Escape))
+            if (input.players[0].confirm || input.players[0].back)
                 return Transition::MainMenu;
             break;
     }

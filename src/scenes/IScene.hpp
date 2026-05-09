@@ -1,10 +1,10 @@
 #pragma once
 
+#include "core/FrameInput.hpp"
 #include "game/GameState.hpp"
 
 #include <string>
 
-namespace core { struct InputState; }
 namespace renderer {
     struct Button;
     class Renderer2D;
@@ -61,7 +61,7 @@ public:
         /* called once when this scene is popped off the stack and destroyed */
     }
 
-    virtual std::string update(const core::InputState& input, float dt) = 0;
+    virtual std::string update(const core::FrameInput& input, float dt) = 0;
 
     virtual void render(renderer::Renderer2D& r) const = 0;
 

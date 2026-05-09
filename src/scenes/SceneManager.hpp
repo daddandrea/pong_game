@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/InputState.hpp"
+#include "core/FrameInput.hpp"
 #include "game/GameState.hpp"
 
 #include <functional>
@@ -9,7 +9,6 @@
 #include <string>
 #include <vector>
 
-namespace core { struct InputState; }
 namespace renderer { class Renderer2D; }
 
 namespace scenes {
@@ -31,7 +30,7 @@ public:
     void push(const std::string& name);
     void pop();
 
-    std::string update(const core::InputState& input, float dt);
+    std::string update(const core::FrameInput& input, float dt);
 
     void render(renderer::Renderer2D& r) const;
 

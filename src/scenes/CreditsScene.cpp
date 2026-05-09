@@ -4,10 +4,10 @@
 
 namespace scenes {
 
-std::string CreditsScene::update(const core::InputState& input, float dt) {
+std::string CreditsScene::update(const core::FrameInput& input, float dt) {
     (void)dt;
 
-    if (input.is_pressed(core::Key::Escape) || input.mouse.left_pressed)
+    if (input.players[0].back || input.mouse.left_pressed)
         return Transition::MainMenu;
 
     return Transition::Stay;
