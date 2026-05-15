@@ -15,6 +15,11 @@ public:
     InputManager();
     ~InputManager();
 
+    InputManager(const InputManager&)            = delete;
+    InputManager& operator=(const InputManager&) = delete;
+    InputManager(InputManager&&)                 = delete;
+    InputManager& operator=(InputManager&&)      = delete;
+
     void set_window_size(float w, float h);
     void clear_frame_state();
     void handle_event(const SDL_Event& event);
