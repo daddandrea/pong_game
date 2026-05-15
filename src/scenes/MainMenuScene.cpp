@@ -10,19 +10,41 @@
 
 namespace scenes {
 
-MainMenuScene::MainMenuScene(game::GameConfig& config)
-    : m_config(config) {
-
+MainMenuScene::MainMenuScene() {
     using enum MainMenuItem;
-    m_buttons.push_back({static_cast<int>(SinglePlayer), "Singleplayer", {0.0f,  1.2f}, {renderer::Button::DEFAULT_W, renderer::Button::DEFAULT_H}});
-    m_buttons.push_back({static_cast<int>(MultiPlayer),  "Multiplayer",  {0.0f,  0.0f}, {renderer::Button::DEFAULT_W, renderer::Button::DEFAULT_H}});
-    m_buttons.push_back({static_cast<int>(Credits),      "Credits",      {0.0f, -1.2f}, {renderer::Button::DEFAULT_W, renderer::Button::DEFAULT_H}});
-    m_buttons.push_back({static_cast<int>(Quit),         "Quit",         {0.0f, -2.6f}, {renderer::Button::DEFAULT_W, renderer::Button::DEFAULT_H}});
+
+    m_buttons.push_back({
+        static_cast<int>(SinglePlayer),
+        "Singleplayer",
+        {0.0f,  1.2f},
+        {renderer::Button::DEFAULT_W, renderer::Button::DEFAULT_H}
+    });
+
+    m_buttons.push_back({
+        static_cast<int>(MultiPlayer),
+        "Multiplayer",
+        {0.0f,  0.0f},
+        {renderer::Button::DEFAULT_W, renderer::Button::DEFAULT_H}
+    });
+
+    m_buttons.push_back({
+        static_cast<int>(Credits),
+        "Credits",
+        {0.0f, -1.2f},
+        {renderer::Button::DEFAULT_W, renderer::Button::DEFAULT_H}
+    });
+
+    m_buttons.push_back({
+        static_cast<int>(Quit),
+        "Quit",
+        {0.0f, -2.6f},
+        {renderer::Button::DEFAULT_W, renderer::Button::DEFAULT_H}
+    });
 }
 
 std::string MainMenuScene::update(const core::FrameInput& input, float dt) {
     (void)dt;
-    const int n   = static_cast<int>(m_buttons.size());
+    const auto n  = static_cast<int>(m_buttons.size());
     const auto& p = input.players[0];
 
     int sel = -1;
@@ -47,13 +69,7 @@ std::string MainMenuScene::update(const core::FrameInput& input, float dt) {
     }
 
     if (input.mouse.moved) {
-        for (int i = 0; i < n; ++i) {
-            if (m_buttons[i].contains({input.mouse.x, input.mouse.y})) {
-                if (sel >= 0) m_buttons[sel].selected = false;
-                m_buttons[i].selected = true;
-                sel = i;
-            }
-        }
+        renderer::select_hovered(m_buttons, sel, {input.mouse.x, input.mouse.y});
     }
 
     for (int i = 0; i < n; ++i) m_buttons[i].hovered = m_buttons[i].selected;
@@ -71,13 +87,8 @@ std::string MainMenuScene::update(const core::FrameInput& input, float dt) {
     if (p.confirm && sel >= 0) return activate(sel);
 
     if (input.mouse.left_pressed) {
-        for (int i = 0; i < n; ++i) {
-            if (m_buttons[i].contains({input.mouse.x, input.mouse.y})) {
-                if (sel >= 0) m_buttons[sel].selected = false;
-                m_buttons[i].selected = true;
-                return activate(i);
-            }
-        }
+        if (int i = renderer::select_hovered(m_buttons, sel, {input.mouse.x, input.mouse.y}))
+            return activate(i);
     }
 
     if (p.back) return Transition::Quit;

@@ -12,13 +12,12 @@ enum class LanJoinMenuItem {
 class LanJoinScene : public IScene {
 
 public:
-    explicit LanJoinScene(game::GameConfig& config);
+    explicit LanJoinScene();
 
     std::string update(const core::FrameInput& input, float dt) override;
     void render(renderer::Renderer2D &r) const override;
 
 private:
-    game::GameConfig& m_config;
     std::vector<renderer::Button> m_buttons;
 };
 

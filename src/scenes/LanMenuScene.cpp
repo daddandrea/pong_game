@@ -9,18 +9,34 @@
 
 namespace scenes {
 
-LanMenuScene::LanMenuScene(game::GameConfig& config)
-    : m_config(config) {
-
+LanMenuScene::LanMenuScene() {
     using enum LanMenuItem;
-    m_buttons.push_back({static_cast<int>(Host),     "Host a game", {0.0f,  1.2f}, {renderer::Button::DEFAULT_W, renderer::Button::DEFAULT_H}});
-    m_buttons.push_back({static_cast<int>(Join),     "Join a game", {0.0f,  0.0f}, {renderer::Button::DEFAULT_W, renderer::Button::DEFAULT_H}});
-    m_buttons.push_back({static_cast<int>(MainMenu), "Main Menu",   {0.0f, -1.2f}, {renderer::Button::DEFAULT_W, renderer::Button::DEFAULT_H}});
+
+    m_buttons.push_back({
+        static_cast<int>(Host),
+        "Host a game",
+        {0.0f,  1.2f},
+        {renderer::Button::DEFAULT_W, renderer::Button::DEFAULT_H}
+    });
+
+    m_buttons.push_back({
+        static_cast<int>(Join),
+        "Join a game",
+        {0.0f,  0.0f},
+        {renderer::Button::DEFAULT_W, renderer::Button::DEFAULT_H}
+    });
+
+    m_buttons.push_back({
+        static_cast<int>(MainMenu),
+        "Main Menu",
+        {0.0f, -1.2f},
+        {renderer::Button::DEFAULT_W, renderer::Button::DEFAULT_H}
+    });
 }
 
 std::string LanMenuScene::update(const core::FrameInput& input, float dt) {
     (void)dt;
-    const int n   = static_cast<int>(m_buttons.size());
+    const auto n  = static_cast<int>(m_buttons.size());
     const auto& p = input.players[0];
 
     int sel = -1;
@@ -45,13 +61,7 @@ std::string LanMenuScene::update(const core::FrameInput& input, float dt) {
     }
 
     if (input.mouse.moved) {
-        for (int i = 0; i < n; ++i) {
-            if (m_buttons[i].contains({input.mouse.x, input.mouse.y})) {
-                if (sel >= 0) m_buttons[sel].selected = false;
-                m_buttons[i].selected = true;
-                sel = i;
-            }
-        }
+        renderer::select_hovered(m_buttons, sel, {input.mouse.x, input.mouse.y});
     }
 
     for (int i = 0; i < n; ++i) m_buttons[i].hovered = m_buttons[i].selected;
@@ -69,13 +79,8 @@ std::string LanMenuScene::update(const core::FrameInput& input, float dt) {
     if (p.confirm && sel >= 0) return activate(sel);
 
     if (input.mouse.left_pressed) {
-        for (int i = 0; i < n; ++i) {
-            if (m_buttons[i].contains({input.mouse.x, input.mouse.y})) {
-                if (sel >= 0) m_buttons[sel].selected = false;
-                m_buttons[i].selected = true;
-                return activate(i);
-            }
-        }
+        if (int i = renderer::select_hovered(m_buttons, sel, {input.mouse.x, input.mouse.y}))
+            return activate(i);
     }
 
     if (p.back) return Transition::MainMenu;

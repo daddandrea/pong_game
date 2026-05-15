@@ -2,7 +2,6 @@
 
 #include "game/BallState.hpp"
 #include "game/CpuController.hpp"
-#include "game/DevSettings.hpp"
 #include "game/GameConfig.hpp"
 #include "game/GameSettings.hpp"
 #include "game/GameState.hpp"
@@ -14,7 +13,7 @@ namespace scenes {
 class GameScene : public IScene {
 
 public:
-    GameScene(game::GameSettings& settings, game::GameConfig& config, game::DevSettings& dev);
+    GameScene(game::GameSettings& settings, game::GameConfig& config);
 
     void on_enter() override;
     std::string update(const core::FrameInput& input, float dt) override;
@@ -27,7 +26,6 @@ private:
 
     game::GameSettings& m_settings;
     game::GameConfig&   m_config;
-    game::DevSettings&  m_dev;
 
     game::BallState m_ball;
     game::PaddleState m_left_paddle  = game::PaddleState(game::PaddleSide::Left);

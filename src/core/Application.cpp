@@ -78,7 +78,7 @@ Application::Application() {
     m_scene_manager = std::make_unique<scenes::SceneManager>();
 
     m_scene_manager->register_scene(Transition::MainMenu,
-                                    [&c = m_config] { return std::make_unique<scenes::MainMenuScene>(c); }
+                                    [] { return std::make_unique<scenes::MainMenuScene>(); }
     );
 
     m_scene_manager->register_scene(Transition::SinglePlayer,
@@ -86,32 +86,32 @@ Application::Application() {
     );
 
     m_scene_manager->register_scene(Transition::MultiPlayer,
-                                    [&c = m_config] { return std::make_unique<scenes::MultiPlayerMenuScene>(c); }
+                                    [] { return std::make_unique<scenes::MultiPlayerMenuScene>(); }
     );
 
     m_scene_manager->register_scene(Transition::LanMenu,
-                                    [&c = m_config] { return std::make_unique<scenes::LanMenuScene>(c); }
+                                    [] { return std::make_unique<scenes::LanMenuScene>(); }
     );
 
     m_scene_manager->register_scene(Transition::LanHost,
-                                    [&c = m_config] { return std::make_unique<scenes::LanHostScene>(c); }
+                                    [] { return std::make_unique<scenes::LanHostScene>(); }
     );
 
     m_scene_manager->register_scene(Transition::LanJoin,
-                                    [&c = m_config] { return std::make_unique<scenes::LanJoinScene>(c); }
+                                    [] { return std::make_unique<scenes::LanJoinScene>(); }
     );
 
     m_scene_manager->register_scene(Transition::MatchMaking,
-                                    [&c = m_config] { return std::make_unique<scenes::MatchMakingScene>(c); }
+                                    [] { return std::make_unique<scenes::MatchMakingScene>(); }
     );
 
     m_scene_manager->register_scene(Transition::Game,
-                                    [&s = m_settings, &c = m_config, &d = m_dev ]
-                                        { return std::make_unique<scenes::GameScene>(s, c, d); }
+                                    [&s = m_settings, &c = m_config ]
+                                        { return std::make_unique<scenes::GameScene>(s, c); }
     );
 
     m_scene_manager->register_scene(Transition::Pause,
-                                    [&d = m_dev] { return std::make_unique<scenes::PauseScene>(d); }
+                                    [] { return std::make_unique<scenes::PauseScene>(); }
     );
 
     m_scene_manager->register_scene(Transition::Credits,
@@ -202,9 +202,7 @@ void Application::run() {
                                   updater_status == Updater::Status::UpdateAvailable);
         const core::FrameInput frame = block_input ? core::FrameInput{} : m_input_manager.frame_input();
 
-        const std::string next = m_scene_manager->update(frame, dt);
-
-        if (next == Transition::Quit) {
+        if (const std::string next = m_scene_manager->update(frame, dt); next == Transition::Quit) {
             m_window.set_should_close(true);
             ImGui::EndFrame();
             return;

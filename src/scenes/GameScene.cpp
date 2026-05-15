@@ -15,10 +15,9 @@ static bool rand_bool() {
     return std::bernoulli_distribution{0.5}(gen);
 }
 
-GameScene::GameScene(game::GameSettings& settings, game::GameConfig& config, game::DevSettings& dev)
+GameScene::GameScene(game::GameSettings& settings, game::GameConfig& config)
     : m_settings(settings),
-      m_config(config),
-      m_dev(dev)
+      m_config(config)
 {}
 
 void GameScene::on_enter() {

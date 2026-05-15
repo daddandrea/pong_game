@@ -5,9 +5,7 @@
 
 namespace scenes {
 
-PauseScene::PauseScene(game::DevSettings& dev_settings)
-    : m_dev(dev_settings) {
-
+PauseScene::PauseScene() {
     m_buttons.push_back({
         static_cast<int>(PauseItem::Resume),
         "Resume",
@@ -30,7 +28,7 @@ PauseScene::PauseScene(game::DevSettings& dev_settings)
 
 std::string PauseScene::update(const core::FrameInput& input, float dt) {
     (void)dt;
-    const int n   = static_cast<int>(m_buttons.size());
+    const auto n  = static_cast<int>(m_buttons.size());
     const auto& p = input.players[0];
 
     if (p.back) return Transition::Pop;
@@ -57,13 +55,7 @@ std::string PauseScene::update(const core::FrameInput& input, float dt) {
     }
 
     if (input.mouse.moved) {
-        for (int i = 0; i < n; ++i) {
-            if (m_buttons[i].contains({input.mouse.x, input.mouse.y})) {
-                if (sel >= 0) m_buttons[sel].selected = false;
-                m_buttons[i].selected = true;
-                sel = i;
-            }
-        }
+        renderer::select_hovered(m_buttons, sel, {input.mouse.x, input.mouse.y});
     }
 
     for (int i = 0; i < n; ++i) m_buttons[i].hovered = m_buttons[i].selected;
@@ -80,13 +72,8 @@ std::string PauseScene::update(const core::FrameInput& input, float dt) {
     if (p.confirm && sel >= 0) return activate(sel);
 
     if (input.mouse.left_pressed) {
-        for (int i = 0; i < n; ++i) {
-            if (m_buttons[i].contains({input.mouse.x, input.mouse.y})) {
-                if (sel >= 0) m_buttons[sel].selected = false;
-                m_buttons[i].selected = true;
-                return activate(i);
-            }
-        }
+        if (int i = renderer::select_hovered(m_buttons, sel, {input.mouse.x, input.mouse.y}))
+            return activate(i);
     }
 
     return Transition::Stay;

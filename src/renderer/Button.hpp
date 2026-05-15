@@ -2,6 +2,7 @@
 
 #include "glm/ext/vector_float2.hpp"
 #include <string>
+#include <vector>
 
 namespace renderer {
 
@@ -20,5 +21,7 @@ struct Button {
 
     bool contains(glm::vec2 pt) const;
 };
+
+int select_hovered(std::vector<Button>& buttons, int& sel, glm::vec2 pt);
 
 }
