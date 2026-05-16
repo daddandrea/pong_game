@@ -4,6 +4,7 @@
 #include <httplib.h>
 #include <SDL3/SDL_filesystem.h>
 
+#include <algorithm>
 #include <filesystem>
 #include <format>
 #include <fstream>
@@ -286,7 +287,8 @@ try {
         return;
     }
 
-    const auto& latest = entries.front();
+    const auto& latest = *std::max_element(entries.begin(), entries.end(),
+        [](const ReleaseEntry& a, const ReleaseEntry& b) { return a.updated < b.updated; });
     m_latest_version = latest.title;
     m_download_url   = std::format("https://github.com/{}/releases/download/{}/{}",
                                    PONG_GITHUB_REPO, latest.title, versioned_archive(latest.title));
