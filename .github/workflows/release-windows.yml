@@ -3,7 +3,7 @@ name: Release Windows
 on:
   push:
     tags:
-      - '[0-9]*'
+      - '*'
   workflow_dispatch:
     inputs:
       tag:
@@ -71,4 +71,4 @@ jobs:
         with:
           tag_name: ${{ steps.tag.outputs.value }}
           files: pong-windows-x86_64${{ matrix.suffix }}-${{ steps.tag.outputs.value }}.zip
-          generate_release_notes: true
+          generate_release_notes: false

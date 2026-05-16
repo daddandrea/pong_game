@@ -4,6 +4,7 @@
 #include <httplib.h>
 #include <SDL3/SDL_filesystem.h>
 
+#include <algorithm>
 #include <filesystem>
 #include <format>
 #include <fstream>
@@ -50,55 +51,36 @@ static std::string versioned_archive(const std::string& tag) {
 #endif
 }
 
-static int version_part(std::string_view v, int part) {
-    int i = 0;
+struct ReleaseEntry { std::string title; std::string updated; };
+
+static std::vector<ReleaseEntry> parse_atom_feed(const std::string& xml) {
+    std::vector<ReleaseEntry> entries;
     std::string::size_type pos = 0;
-    while (i < part) {
-        pos = v.find('.', pos);
-        if (pos == std::string::npos) return 0;
-        ++pos;
-        ++i;
-    }
-    try {
-        return std::stoi(static_cast<std::string>(v.substr(pos)));
-    } catch (...) {
-        return 0;
-    }
-}
 
-static int trailing_num(const std::string& s) {
-    auto i = s.size();
-    while (i > 0 && std::isdigit(static_cast<unsigned char>(s[i - 1]))) --i;
-    if (i == s.size()) return -1;
-    try {
-        return std::stoi(s.substr(i));
-    } catch (...) {
-        return -1;
-    }
-}
+    while (true) {
+        const auto entry_start = xml.find("<entry>", pos);
+        if (entry_start == std::string::npos) break;
+        const auto entry_end = xml.find("</entry>", entry_start);
+        if (entry_end == std::string::npos) break;
 
-static bool is_newer(const std::string& remote, const std::string& local) {
-    const auto split = [](const std::string& v) {
-        const auto d = v.find('-');
-        return d == std::string::npos
-            ? std::make_pair(v, std::string{})
-            : std::make_pair(v.substr(0, d), v.substr(d + 1));
-    };
+        const std::string block = xml.substr(entry_start, entry_end - entry_start);
 
-    const auto [rmain, rpre] = split(remote);
-    const auto [lmain, lpre] = split(local);
+        const auto extract = [&](const char* tag) -> std::string {
+            const std::string open  = std::string("<")  + tag + ">";
+            const std::string close = std::string("</") + tag + ">";
+            const auto s = block.find(open);
+            if (s == std::string::npos) return {};
+            const auto vs = s + open.size();
+            const auto e  = block.find(close, vs);
+            if (e == std::string::npos) return {};
+            return block.substr(vs, e - vs);
+        };
 
-    for (int i = 0; i < 3; ++i) {
-        const int rv = version_part(rmain, i);
-        const int lv = version_part(lmain, i);
-        if (rv != lv) return rv > lv;
+        entries.push_back({ extract("title"), extract("updated") });
+        pos = entry_end + 8;
     }
 
-    // same X.Y.Z — compare pre-release suffix
-    if (rpre.empty() && lpre.empty()) return false;
-    if (rpre.empty()) return true;   // stable beats pre-release
-    if (lpre.empty()) return false;  // pre-release loses to stable
-    return trailing_num(rpre) > trailing_num(lpre);
+    return entries;
 }
 
 /**
@@ -122,16 +104,7 @@ static void parse_url(std::string_view url, std::string& host, std::string& path
     path = url.substr(path_start);
 }
 
-/**
- * @brief Performs a GET request and manually follows one redirect if needed.
- *
- * cpp-httplib does not reliably follow cross-domain HTTPS redirects.
- * GitHub release asset URLs redirect from github.com to a CDN
- * (objects.githubusercontent.com), so we handle the redirect explicitly.
- *
- * @param url Full URL to fetch.
- * @return The final HTTP response, or nullptr on failure.
- */
+#ifndef _WIN32
 static httplib::Result fetch_with_redirect(const std::string& url) {
     std::string host;
     std::string path;
@@ -179,6 +152,7 @@ static httplib::Result fetch_with_redirect(const std::string& url) {
 
     return res;
 }
+#endif
 
 /**
  * @brief Launches the update script with the given arguments.
@@ -282,52 +256,59 @@ try {
         return;
     }
 
-    const std::string path = "/" PONG_GITHUB_REPO "/releases/latest";
-
 #ifdef _WIN32
-    const std::string location = winhttp_get_redirect_location(path);
-    if (location.empty()) {
-        Log::warn("Updater: failed to check for updates");
+    const std::string atom_url = std::string(GITHUB_HOST) + "/" PONG_GITHUB_REPO "/releases.atom";
+    auto bytes = winhttp_download(atom_url);
+    if (bytes.empty()) {
+        Log::warn("Updater: failed to fetch atom feed");
         m_status = Status::Error;
         return;
     }
+    const std::string body(bytes.begin(), bytes.end());
 #else
     httplib::Client cli(GITHUB_HOST);
-    cli.set_follow_location(false);
+    cli.set_follow_location(true);
     cli.set_connection_timeout(5);
     cli.set_read_timeout(5);
 
-    auto res = cli.Get(path, {{ "User-Agent", "pong-updater" }});
-
-    if (!res || res->status < 300 || res->status >= 400) {
-        Log::warn("Updater: failed to check for updates (status {})", res ? res->status : 0);
+    auto res = cli.Get("/" PONG_GITHUB_REPO "/releases.atom", {{ "User-Agent", "pong-updater" }});
+    if (!res || res->status != 200) {
+        Log::warn("Updater: failed to fetch atom feed (status {})", res ? res->status : 0);
         m_status = Status::Error;
         return;
     }
-
-    const auto it = res->headers.find("location");
-    if (it == res->headers.end()) {
-        Log::warn("Updater: no location header in redirect");
-        m_status = Status::Error;
-        return;
-    }
-
-    const std::string& location = it->second;
+    const std::string& body = res->body;
 #endif
-    const auto slash = location.rfind('/');
-    if (slash == std::string::npos) {
-        Log::warn("Updater: could not parse tag from location: {}", location);
+
+    const auto entries = parse_atom_feed(body);
+    if (entries.empty()) {
+        Log::warn("Updater: no entries in atom feed");
         m_status = Status::Error;
         return;
     }
 
-    const std::string tag = location.substr(slash + 1);
-    m_latest_version = tag;
+    const auto& latest = *std::max_element(entries.begin(), entries.end(),
+        [](const ReleaseEntry& a, const ReleaseEntry& b) { return a.updated < b.updated; });
+    m_latest_version = latest.title;
     m_download_url   = std::format("https://github.com/{}/releases/download/{}/{}",
-                                   PONG_GITHUB_REPO, tag, versioned_archive(tag));
+                                   PONG_GITHUB_REPO, latest.title, versioned_archive(latest.title));
 
-    if (is_newer(tag, PONG_VERSION)) {
-        Log::info("Updater: update available {} -> {}", PONG_VERSION, tag);
+    if (latest.title == PONG_VERSION) {
+        Log::info("Updater: up to date ({})", PONG_VERSION);
+        m_status = Status::UpToDate;
+        return;
+    }
+
+    std::string current_updated;
+    for (const auto& e : entries) {
+        if (e.title == PONG_VERSION) {
+            current_updated = e.updated;
+            break;
+        }
+    }
+
+    if (current_updated.empty() || latest.updated > current_updated) {
+        Log::info("Updater: update available {} -> {}", PONG_VERSION, latest.title);
         m_status = Status::UpdateAvailable;
     } else {
         Log::info("Updater: up to date ({})", PONG_VERSION);

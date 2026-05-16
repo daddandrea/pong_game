@@ -3,7 +3,7 @@ name: Release Linux
 on:
   push:
     tags:
-      - '[0-9]*'
+      - '*'
   workflow_dispatch:
     inputs:
       tag:
@@ -81,4 +81,4 @@ jobs:
         with:
           tag_name: ${{ steps.tag.outputs.value }}
           files: pong-linux-x86_64${{ matrix.suffix }}-${{ steps.tag.outputs.value }}.tar.gz
-          generate_release_notes: true
+          generate_release_notes: false
