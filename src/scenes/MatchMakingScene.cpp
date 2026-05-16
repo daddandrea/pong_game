@@ -32,18 +32,19 @@ std::string MatchMakingScene::update(const core::FrameInput& input, float dt) {
     }
 
     if (input.mouse.moved) {
-        renderer::select_hovered(m_buttons, sel, {input.mouse.x, input.mouse.y});
+        for (auto& btn : m_buttons)
+            btn.handle_hover({input.mouse.x, input.mouse.y});
     }
 
-    for (int i = 0; i < n; ++i) m_buttons[i].hovered = m_buttons[i].selected;
+    for (int i = 0; i < n; ++i)
+        m_buttons[i].hovered = m_buttons[i].selected;
 
     if (p.confirm && sel >= 0) return Transition::MainMenu;
 
     if (input.mouse.left_pressed) {
-        for (int i = 0; i < n; ++i) {
-            if (m_buttons[i].contains({input.mouse.x, input.mouse.y})) {
+        for (auto& btn : m_buttons) {
+            if (btn.handle_click({input.mouse.x, input.mouse.y}))
                 return Transition::MainMenu;
-            }
         }
     }
 

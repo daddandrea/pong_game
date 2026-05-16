@@ -69,26 +69,34 @@ std::string MainMenuScene::update(const core::FrameInput& input, float dt) {
     }
 
     if (input.mouse.moved) {
-        renderer::select_hovered(m_buttons, sel, {input.mouse.x, input.mouse.y});
+        for (auto& btn : m_buttons)
+            btn.handle_hover({input.mouse.x, input.mouse.y});
     }
 
-    for (int i = 0; i < n; ++i) m_buttons[i].hovered = m_buttons[i].selected;
+    for (int i = 0; i < n; ++i)
+        m_buttons[i].hovered = m_buttons[i].selected;
 
-    auto activate = [&](int idx) -> std::string {
-        switch (static_cast<MainMenuItem>(m_buttons[idx].item)) {
+    std::optional<int> activated;
+
+    if (p.confirm && sel >= 0)
+        activated = m_buttons[sel].handle_select();
+
+    if (input.mouse.left_pressed) {
+        for (auto& btn : m_buttons) {
+            if (auto item = btn.handle_click({input.mouse.x, input.mouse.y})) {
+                activated = item;
+                break;
+            }
+        }
+    }
+
+    if (activated) {
+        switch (static_cast<MainMenuItem>(*activated)) {
             case MainMenuItem::SinglePlayer: return Transition::SinglePlayer;
             case MainMenuItem::MultiPlayer:  return Transition::MultiPlayer;
             case MainMenuItem::Credits:      return Transition::Credits;
             case MainMenuItem::Quit:         return Transition::Quit;
         }
-        return Transition::Stay;
-    };
-
-    if (p.confirm && sel >= 0) return activate(sel);
-
-    if (input.mouse.left_pressed) {
-        if (int i = renderer::select_hovered(m_buttons, sel, {input.mouse.x, input.mouse.y}))
-            return activate(i);
     }
 
     if (p.back) return Transition::Quit;

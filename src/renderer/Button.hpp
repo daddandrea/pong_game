@@ -1,8 +1,8 @@
 #pragma once
 
 #include "glm/ext/vector_float2.hpp"
+#include <optional>
 #include <string>
-#include <vector>
 
 namespace renderer {
 
@@ -19,9 +19,10 @@ struct Button {
     bool        hovered  = false;
     bool        selected = false;
 
-    bool contains(glm::vec2 pt) const;
+    bool               contains      (glm::vec2 pt) const;
+    void               handle_hover  (glm::vec2 pt);
+    std::optional<int> handle_click  (glm::vec2 pt);
+    std::optional<int> handle_select () const;
 };
-
-int select_hovered(std::vector<Button>& buttons, int& sel, glm::vec2 pt);
 
 }
