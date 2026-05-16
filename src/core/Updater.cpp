@@ -103,16 +103,7 @@ static void parse_url(std::string_view url, std::string& host, std::string& path
     path = url.substr(path_start);
 }
 
-/**
- * @brief Performs a GET request and manually follows one redirect if needed.
- *
- * cpp-httplib does not reliably follow cross-domain HTTPS redirects.
- * GitHub release asset URLs redirect from github.com to a CDN
- * (objects.githubusercontent.com), so we handle the redirect explicitly.
- *
- * @param url Full URL to fetch.
- * @return The final HTTP response, or nullptr on failure.
- */
+#ifndef _WIN32
 static httplib::Result fetch_with_redirect(const std::string& url) {
     std::string host;
     std::string path;
@@ -160,6 +151,7 @@ static httplib::Result fetch_with_redirect(const std::string& url) {
 
     return res;
 }
+#endif
 
 /**
  * @brief Launches the update script with the given arguments.

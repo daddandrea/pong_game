@@ -25,7 +25,11 @@ struct tm get_current_localtime() {
 
     struct tm local_time;
 
+#ifdef _WIN32
+    localtime_s(&local_time, &now);
+#else
     localtime_r(&now, &local_time);
+#endif
 
     return local_time;
 }
